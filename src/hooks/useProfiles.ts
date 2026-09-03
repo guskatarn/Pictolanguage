@@ -32,6 +32,7 @@ function createDefaultProfile(name: string, avatar: string): UserProfile {
     name,
     avatar,
     favorites: [],
+    favoritesCustom: [],
     hidden: [],
     hiddenCustom: [],
     categoryOrder: DEFAULT_CATEGORIES.map((c) => c.id),
@@ -165,6 +166,23 @@ export function useProfiles() {
     [data, persist],
   )
 
+  const toggleHideCustomPictogram = useCallback(
+    (profileId: string, customId: string) => {
+      const next: StoredData = {
+        ...data,
+        profiles: data.profiles.map((p) => {
+          if (p.id !== profileId) return p
+          const hiddenCustom = p.hiddenCustom.includes(customId)
+            ? p.hiddenCustom.filter((id) => id !== customId)
+            : [...p.hiddenCustom, customId]
+          return { ...p, hiddenCustom }
+        }),
+      }
+      persist(next)
+    },
+    [data, persist],
+  )
+
   const toggleFavorite = useCallback(
     (profileId: string, pictoId: number) => {
       const next: StoredData = {
@@ -175,6 +193,23 @@ export function useProfiles() {
             ? p.favorites.filter((id) => id !== pictoId)
             : [...p.favorites, pictoId]
           return { ...p, favorites }
+        }),
+      }
+      persist(next)
+    },
+    [data, persist],
+  )
+
+  const toggleFavoriteCustom = useCallback(
+    (profileId: string, customId: string) => {
+      const next: StoredData = {
+        ...data,
+        profiles: data.profiles.map((p) => {
+          if (p.id !== profileId) return p
+          const favoritesCustom = p.favoritesCustom.includes(customId)
+            ? p.favoritesCustom.filter((id) => id !== customId)
+            : [...p.favoritesCustom, customId]
+          return { ...p, favoritesCustom }
         }),
       }
       persist(next)
@@ -208,6 +243,7 @@ export function useProfiles() {
             ...p,
             customPictograms: p.customPictograms.filter((c) => c.id !== customId),
             hiddenCustom: p.hiddenCustom.filter((id) => id !== customId),
+            favoritesCustom: p.favoritesCustom.filter((id) => id !== customId),
           }
         }),
       }
@@ -312,7 +348,9 @@ export function useProfiles() {
     deleteProfile,
     addToHistory,
     toggleHidePictogram,
+    toggleHideCustomPictogram,
     toggleFavorite,
+    toggleFavoriteCustom,
     addCustomPictogram,
     removeCustomPictogram,
     updateSettings,

@@ -1,5 +1,24 @@
 import { Category } from '../types'
 
+/**
+ * Onglet « Favoris », toujours en première position et jamais réordonnable.
+ *
+ * Il est affiché même vide : le faire apparaître au premier favori décalerait
+ * toutes les autres catégories d'un cran, ce qui casserait les repères moteurs
+ * que l'enfant s'est construits. Sa liste n'est pas une catégorie de données —
+ * `pictogramIds` reste vide, le contenu venant du profil.
+ */
+export const FAVORITES_CATEGORY_ID = 'favoris'
+
+export const FAVORITES_CATEGORY: Category = {
+  id: FAVORITES_CATEGORY_ID,
+  name: '⭐ Favoris',
+  color: '#78350F',
+  bgColor: '#FEF9C3',
+  tabColor: '#EAB308',
+  pictogramIds: [],
+}
+
 export const DEFAULT_CATEGORIES: Category[] = [
   {
     id: 'besoins',

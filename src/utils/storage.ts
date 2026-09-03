@@ -54,6 +54,7 @@ function normalizeProfile(raw: Partial<UserProfile>): UserProfile | null {
     name: raw.name,
     avatar: typeof raw.avatar === 'string' ? raw.avatar : '🙂',
     favorites: Array.isArray(raw.favorites) ? raw.favorites : [],
+    favoritesCustom: Array.isArray(raw.favoritesCustom) ? raw.favoritesCustom : [],
     hidden: Array.isArray(raw.hidden) ? raw.hidden : [],
     hiddenCustom: Array.isArray(raw.hiddenCustom) ? raw.hiddenCustom : [],
     categoryOrder: Array.isArray(raw.categoryOrder) && raw.categoryOrder.length

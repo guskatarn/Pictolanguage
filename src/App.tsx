@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { SentenceItem, InstallPromptEvent, UserProfile } from './types'
+import { SentenceItem, InstallPromptEvent, UserProfile, PictogramItem } from './types'
 import { useProfiles } from './hooks/useProfiles'
 import { usePictograms } from './hooks/usePictograms'
 import { useSpeech } from './hooks/useSpeech'
@@ -11,7 +11,7 @@ import CoreVocabularyBar from './components/CoreVocabularyBar'
 import HistoryPanel from './components/HistoryPanel'
 import SettingsPanel from './components/SettingsPanel'
 import StorageAlert from './components/StorageAlert'
-import { DEFAULT_CATEGORIES } from './data/defaultCategories'
+import { DEFAULT_CATEGORIES, FAVORITES_CATEGORY, FAVORITES_CATEGORY_ID } from './data/defaultCategories'
 import { CORE_VOCABULARY } from './data/coreVocabulary'
 
 export type { InstallPromptEvent }
@@ -29,6 +29,9 @@ export default function App() {
     deleteProfile,
     addToHistory,
     toggleHidePictogram,
+    toggleHideCustomPictogram,
+    toggleFavorite,
+    toggleFavoriteCustom,
     addCustomPictogram,
     removeCustomPictogram,
     updateSettings,
@@ -37,10 +40,11 @@ export default function App() {
     importData,
   } = useProfiles()
 
-  const { categories, getPictogramsForCategory, searchArasaac } = usePictograms(activeProfile)
+  const { categories, getPictogramsForCategory, getFavoritePictograms, searchArasaac } =
+    usePictograms(activeProfile)
   const { speak, isSpeaking } = useSpeech()
 
-  const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? 'besoins')
+  const [activeCategory, setActiveCategory] = useState(DEFAULT_CATEGORIES[0]?.id ?? 'besoins')
   const [sentence, setSentence] = useState<SentenceItem[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -66,8 +70,13 @@ export default function App() {
     }
   }, [categories, activeCategory])
 
-  const pictograms = getPictogramsForCategory(activeCategory)
-  const activeCategoryData = DEFAULT_CATEGORIES.find((c) => c.id === activeCategory)
+  const isFavoritesTab = activeCategory === FAVORITES_CATEGORY_ID
+  const pictograms = isFavoritesTab
+    ? getFavoritePictograms()
+    : getPictogramsForCategory(activeCategory)
+  const activeCategoryData = isFavoritesTab
+    ? FAVORITES_CATEGORY
+    : DEFAULT_CATEGORIES.find((c) => c.id === activeCategory)
 
   const handlePictogramClick = (picto: {
     key: string
@@ -83,6 +92,15 @@ export default function App() {
       customImageUrl: picto.isCustom ? picto.imageUrl : undefined,
     }
     setSentence((prev) => [...prev, item])
+  }
+
+  const handleToggleFavorite = (picto: PictogramItem) => {
+    if (!activeProfile) return
+    if (picto.isCustom && picto.customId) {
+      toggleFavoriteCustom(activeProfile.id, picto.customId)
+    } else if (picto.arasaacId !== undefined) {
+      toggleFavorite(activeProfile.id, picto.arasaacId)
+    }
   }
 
   const handleRemoveItem = (key: string) => {
@@ -233,6 +251,7 @@ export default function App() {
               bgColor={activeCategoryData?.bgColor ?? '#F3F4F6'}
               borderColor={activeCategoryData?.tabColor ?? '#6B7280'}
               onClick={handlePictogramClick}
+              onToggleFavorite={handleToggleFavorite}
             />
           ))}
           {pictograms.length === 0 && (
@@ -240,9 +259,20 @@ export default function App() {
               className="flex flex-col items-center justify-center py-16 text-gray-400"
               style={{ gridColumn: '1 / -1' }}
             >
-              <span className="text-5xl mb-3">🏞️</span>
-              <p className="text-base">Aucun pictogramme dans cette catégorie</p>
-              <p className="text-sm mt-1">Ajoutes-en dans les paramètres</p>
+              <span className="text-5xl mb-3">{isFavoritesTab ? '⭐' : '🏞️'}</span>
+              {isFavoritesTab ? (
+                <>
+                  <p className="text-base">Aucun favori pour le moment</p>
+                  <p className="text-sm mt-1">
+                    Touchez l'étoile d'un pictogramme pour l'ajouter ici
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-base">Aucun pictogramme dans cette catégorie</p>
+                  <p className="text-sm mt-1">Ajoutes-en dans les paramètres</p>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -269,6 +299,7 @@ export default function App() {
           }
           onRemoveCustomPictogram={(id) => removeCustomPictogram(activeProfile.id, id)}
           onToggleHide={(id) => toggleHidePictogram(activeProfile.id, id)}
+          onToggleHideCustom={(id) => toggleHideCustomPictogram(activeProfile.id, id)}
           searchArasaac={searchArasaac}
           usedBytes={usedBytes}
           onExportData={exportData}

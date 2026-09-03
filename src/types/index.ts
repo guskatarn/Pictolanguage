@@ -25,7 +25,10 @@ export interface UserProfile {
   id: string
   name: string
   avatar: string
+  /** Pictogrammes par défaut mis en favori (ids ARASAAC). */
   favorites: number[]
+  /** Pictogrammes personnalisés mis en favori (ids internes). */
+  favoritesCustom: string[]
   hidden: number[]
   hiddenCustom: string[]
   categoryOrder: string[]
@@ -54,6 +57,7 @@ export interface PictogramItem {
   imageUrl: string
   isCustom: boolean
   customId?: string
+  isFavorite: boolean
 }
 
 export interface Category {

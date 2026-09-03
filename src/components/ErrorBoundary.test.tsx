@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import ErrorBoundary from './ErrorBoundary'
 import { saveData } from '../utils/storage'
 import { StoredData } from '../types'
+import { makeProfile } from '../test/factories'
 
 /** React journalise l'erreur rattrapée : on garde la sortie de test lisible. */
 beforeEach(() => {
@@ -69,23 +70,7 @@ describe('ErrorBoundary', () => {
   })
 
   it('permet de récupérer ses données alors que le reste de l’application est inaccessible', async () => {
-    const stored: StoredData = {
-      profiles: [
-        {
-          id: 'p1',
-          name: 'Lina',
-          avatar: '🦊',
-          favorites: [],
-          hidden: [],
-          hiddenCustom: [],
-          categoryOrder: ['besoins'],
-          customPictograms: [],
-          history: [],
-          settings: { pictogramSize: 'M', voiceRate: 1, voiceVolume: 1, showCoreBar: true },
-        },
-      ],
-      activeProfileId: 'p1',
-    }
+    const stored: StoredData = { profiles: [makeProfile()], activeProfileId: 'p1' }
     saveData(stored)
 
     const parts: string[] = []

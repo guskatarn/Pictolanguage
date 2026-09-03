@@ -176,6 +176,68 @@ describe('useProfiles — import de sauvegarde', () => {
   })
 })
 
+describe('useProfiles — favoris et masquage', () => {
+  function withProfile() {
+    const { result } = renderHook(() => useProfiles())
+    act(() => {
+      result.current.createProfile('Lina', '🦊')
+    })
+    return { result, id: result.current.activeProfile!.id }
+  }
+
+  it('ajoute puis retire un favori par défaut', () => {
+    const { result, id } = withProfile()
+    act(() => result.current.toggleFavorite(id, 6456))
+    expect(result.current.activeProfile!.favorites).toEqual([6456])
+    act(() => result.current.toggleFavorite(id, 6456))
+    expect(result.current.activeProfile!.favorites).toEqual([])
+  })
+
+  it('ajoute les favoris dans l’ordre où ils sont choisis', () => {
+    const { result, id } = withProfile()
+    act(() => result.current.toggleFavorite(id, 6479))
+    act(() => result.current.toggleFavorite(id, 6456))
+    expect(result.current.activeProfile!.favorites).toEqual([6479, 6456])
+  })
+
+  it('gère séparément les favoris des pictogrammes personnalisés', () => {
+    const { result, id } = withProfile()
+    act(() => result.current.toggleFavoriteCustom(id, 'c1'))
+    expect(result.current.activeProfile!.favoritesCustom).toEqual(['c1'])
+    expect(result.current.activeProfile!.favorites).toEqual([])
+  })
+
+  it('masque puis réaffiche un pictogramme personnalisé', () => {
+    const { result, id } = withProfile()
+    act(() => result.current.toggleHideCustomPictogram(id, 'c1'))
+    expect(result.current.activeProfile!.hiddenCustom).toEqual(['c1'])
+    act(() => result.current.toggleHideCustomPictogram(id, 'c1'))
+    expect(result.current.activeProfile!.hiddenCustom).toEqual([])
+  })
+
+  it('purge favori et masquage quand le pictogramme personnalisé est supprimé', () => {
+    const { result, id } = withProfile()
+    act(() => {
+      result.current.addCustomPictogram(id, {
+        word: 'Maman',
+        imageUrl: 'data:image/webp;base64,AAAA',
+        categoryId: 'besoins',
+      })
+    })
+    const customId = result.current.activeProfile!.customPictograms[0].id
+    act(() => result.current.toggleFavoriteCustom(id, customId))
+    act(() => result.current.toggleHideCustomPictogram(id, customId))
+
+    act(() => result.current.removeCustomPictogram(id, customId))
+
+    // Sans ce nettoyage, un identifiant fantôme resterait référencé et
+    // reviendrait hanter un import ou une future réutilisation d'id.
+    expect(result.current.activeProfile!.favoritesCustom).toEqual([])
+    expect(result.current.activeProfile!.hiddenCustom).toEqual([])
+    expect(result.current.activeProfile!.customPictograms).toEqual([])
+  })
+})
+
 describe('useProfiles — jauge d’occupation', () => {
   it('augmente quand un pictogramme personnalisé est ajouté', () => {
     const { result } = renderHook(() => useProfiles())

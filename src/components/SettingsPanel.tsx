@@ -3,6 +3,7 @@ import { UserProfile, PictogramSize, Category } from '../types'
 import { ImportMode, ImportOutcome } from '../hooks/useProfiles'
 import { fileToStoredImage, remoteImageToStoredImage, isStoredLocally } from '../utils/image'
 import BackupTab from './BackupTab'
+import CategoryManager from './CategoryManager'
 
 interface Props {
   profile: UserProfile
@@ -14,6 +15,7 @@ interface Props {
   onAddCustomPictogram: (word: string, imageUrl: string, categoryId: string) => boolean
   onRemoveCustomPictogram: (id: string) => void
   onToggleHide: (pictoId: number) => void
+  onToggleHideCustom: (customId: string) => void
   searchArasaac: (keyword: string) => Promise<{ arasaacId?: number; word: string; imageUrl: string }[]>
   usedBytes: number
   onExportData: () => void
@@ -30,8 +32,8 @@ export default function SettingsPanel({
   onReorderCategories,
   onAddCustomPictogram,
   onRemoveCustomPictogram,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- réservé pour une future UI "masquer un pictogramme" (le hook onToggleHidePictogram existe déjà côté données)
-  onToggleHide: _onToggleHide,
+  onToggleHide,
+  onToggleHideCustom,
   searchArasaac,
   usedBytes,
   onExportData,
@@ -94,14 +96,6 @@ export default function SettingsPanel({
     } finally {
       setIsSavingCustom(false)
     }
-  }
-
-  const moveCategory = (idx: number, dir: -1 | 1) => {
-    const order = [...profile.categoryOrder]
-    const target = idx + dir
-    if (target < 0 || target >= order.length) return
-    ;[order[idx], order[target]] = [order[target], order[idx]]
-    onReorderCategories(order)
   }
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
@@ -244,41 +238,13 @@ export default function SettingsPanel({
 
           {/* Categories Tab */}
           {activeTab === 'categories' && (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500 mb-3">
-                Réordonnez les catégories avec les flèches
-              </p>
-              {profile.categoryOrder.map((catId, idx) => {
-                const cat = categories.find((c) => c.id === catId)
-                if (!cat) return null
-                return (
-                  <div
-                    key={catId}
-                    className="flex items-center gap-2 bg-gray-50 rounded-xl p-3 border border-gray-100"
-                  >
-                    <span
-                      className="w-3 h-10 rounded-full shrink-0"
-                      style={{ backgroundColor: cat.tabColor }}
-                    />
-                    <span className="flex-1 font-bold text-gray-800">{cat.name}</span>
-                    <button
-                      onClick={() => moveCategory(idx, -1)}
-                      disabled={idx === 0}
-                      className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center disabled:opacity-30"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      onClick={() => moveCategory(idx, 1)}
-                      disabled={idx === profile.categoryOrder.length - 1}
-                      className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center disabled:opacity-30"
-                    >
-                      ↓
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+            <CategoryManager
+              profile={profile}
+              categories={categories}
+              onReorderCategories={onReorderCategories}
+              onToggleHide={onToggleHide}
+              onToggleHideCustom={onToggleHideCustom}
+            />
           )}
 
           {/* Add Custom Tab */}

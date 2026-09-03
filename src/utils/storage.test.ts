@@ -1,26 +1,14 @@
 import { describe, it, expect, vi } from 'vitest'
 import { loadData, saveData, parseBackup, buildBackup, downloadBackup } from './storage'
-import { StoredData, UserProfile } from '../types'
+import { StoredData } from '../types'
+import { makeProfile } from '../test/factories'
 
 const STORAGE_KEY = 'pictoapp-data'
 
-function makeProfile(overrides: Partial<UserProfile> = {}): UserProfile {
-  return {
-    id: 'p1',
-    name: 'Lina',
-    avatar: '🦊',
-    favorites: [],
-    hidden: [],
-    hiddenCustom: [],
-    categoryOrder: ['besoins'],
-    customPictograms: [],
-    history: [],
-    settings: { pictogramSize: 'L', voiceRate: 1.2, voiceVolume: 0.8, showCoreBar: false },
-    ...overrides,
-  }
+const data: StoredData = {
+  profiles: [makeProfile({ categoryOrder: ['besoins'], settings: { pictogramSize: 'L', voiceRate: 1.2, voiceVolume: 0.8, showCoreBar: false } })],
+  activeProfileId: 'p1',
 }
-
-const data: StoredData = { profiles: [makeProfile()], activeProfileId: 'p1' }
 
 /** Force le prochain `setItem` à échouer comme un quota saturé. */
 function simulateFullStorage() {
