@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { UserProfile, PictogramSize, Category } from '../types'
+import { ImportMode, ImportOutcome } from '../hooks/useProfiles'
+import { fileToStoredImage, remoteImageToStoredImage, isStoredLocally } from '../utils/image'
+import BackupTab from './BackupTab'
 
 interface Props {
   profile: UserProfile
@@ -7,13 +10,17 @@ interface Props {
   onClose: () => void
   onUpdateSettings: (settings: Partial<UserProfile['settings']>) => void
   onReorderCategories: (order: string[]) => void
-  onAddCustomPictogram: (word: string, imageUrl: string, categoryId: string) => void
+  /** Renvoie `false` si l'ajout n'a pas pu être enregistré (quota saturé). */
+  onAddCustomPictogram: (word: string, imageUrl: string, categoryId: string) => boolean
   onRemoveCustomPictogram: (id: string) => void
   onToggleHide: (pictoId: number) => void
   searchArasaac: (keyword: string) => Promise<{ arasaacId?: number; word: string; imageUrl: string }[]>
+  usedBytes: number
+  onExportData: () => void
+  onImportData: (raw: string, mode: ImportMode) => ImportOutcome
 }
 
-type Tab = 'display' | 'voice' | 'categories' | 'custom'
+type Tab = 'display' | 'voice' | 'categories' | 'custom' | 'backup'
 
 export default function SettingsPanel({
   profile,
@@ -26,6 +33,9 @@ export default function SettingsPanel({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- réservé pour une future UI "masquer un pictogramme" (le hook onToggleHidePictogram existe déjà côté données)
   onToggleHide: _onToggleHide,
   searchArasaac,
+  usedBytes,
+  onExportData,
+  onImportData,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('display')
   const [searchQuery, setSearchQuery] = useState('')
@@ -34,6 +44,9 @@ export default function SettingsPanel({
   const [customWord, setCustomWord] = useState('')
   const [customCategory, setCustomCategory] = useState(categories[0]?.id ?? '')
   const [customImageUrl, setCustomImageUrl] = useState('')
+  const [customError, setCustomError] = useState<string | null>(null)
+  const [isPreparingImage, setIsPreparingImage] = useState(false)
+  const [isSavingCustom, setIsSavingCustom] = useState(false)
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -43,19 +56,44 @@ export default function SettingsPanel({
     setIsSearching(false)
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    // Remise à zéro du champ : re-choisir le même fichier doit redéclencher `change`.
+    e.target.value = ''
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => setCustomImageUrl(ev.target?.result as string)
-    reader.readAsDataURL(file)
+    setCustomError(null)
+    setIsPreparingImage(true)
+    try {
+      // La photo est redimensionnée et ré-encodée avant tout stockage : une
+      // image brute d'appareil photo saturerait le quota localStorage à elle seule.
+      setCustomImageUrl(await fileToStoredImage(file))
+    } catch (err) {
+      setCustomImageUrl('')
+      setCustomError(err instanceof Error ? err.message : 'Image inutilisable.')
+    } finally {
+      setIsPreparingImage(false)
+    }
   }
 
-  const handleAddCustom = () => {
+  const handleAddCustom = async () => {
     if (!customWord.trim() || !customImageUrl || !customCategory) return
-    onAddCustomPictogram(customWord.trim(), customImageUrl, customCategory)
-    setCustomWord('')
-    setCustomImageUrl('')
+    setCustomError(null)
+    setIsSavingCustom(true)
+    try {
+      // Un pictogramme choisi dans la recherche ARASAAC n'est encore qu'une URL
+      // distante : on rapatrie l'image pour qu'il reste affichable hors ligne.
+      const storedImage = isStoredLocally(customImageUrl)
+        ? customImageUrl
+        : await remoteImageToStoredImage(customImageUrl)
+      // En cas d'échec, le message de quota est porté par l'alerte globale.
+      if (!onAddCustomPictogram(customWord.trim(), storedImage, customCategory)) return
+      setCustomWord('')
+      setCustomImageUrl('')
+    } catch (err) {
+      setCustomError(err instanceof Error ? err.message : 'Ajout impossible.')
+    } finally {
+      setIsSavingCustom(false)
+    }
   }
 
   const moveCategory = (idx: number, dir: -1 | 1) => {
@@ -71,6 +109,7 @@ export default function SettingsPanel({
     { id: 'voice', label: 'Voix', icon: '🔊' },
     { id: 'categories', label: 'Catégories', icon: '📂' },
     { id: 'custom', label: 'Ajouter', icon: '➕' },
+    { id: 'backup', label: 'Sauvegarde', icon: '💾' },
   ]
 
   return (
@@ -300,6 +339,11 @@ export default function SettingsPanel({
               <div className="border-t border-gray-200 pt-4">
                 <p className="text-sm font-bold text-gray-700 mb-2">📷 Ou charger une image</p>
                 <input type="file" accept="image/*" onChange={handleFileUpload} className="text-sm w-full" />
+                {isPreparingImage && (
+                  <p className="text-xs text-violet-600 font-bold mt-1.5">
+                    Préparation de l'image…
+                  </p>
+                )}
               </div>
 
               {customImageUrl && (
@@ -328,12 +372,24 @@ export default function SettingsPanel({
                 </div>
               )}
 
+              {customError && (
+                <p role="alert" className="text-xs font-bold text-red-700 bg-red-50 rounded-lg p-2.5 leading-snug">
+                  {customError}
+                </p>
+              )}
+
               <button
                 onClick={handleAddCustom}
-                disabled={!customWord.trim() || !customImageUrl || !customCategory}
+                disabled={
+                  !customWord.trim() ||
+                  !customImageUrl ||
+                  !customCategory ||
+                  isPreparingImage ||
+                  isSavingCustom
+                }
                 className="w-full bg-violet-600 text-white rounded-xl py-3 font-bold text-base disabled:opacity-40 active:scale-95"
               >
-                ➕ Ajouter ce pictogramme
+                {isSavingCustom ? 'Enregistrement…' : '➕ Ajouter ce pictogramme'}
               </button>
 
               {/* Custom pictograms list */}
@@ -365,6 +421,15 @@ export default function SettingsPanel({
                 </div>
               )}
             </div>
+          )}
+
+          {/* Backup Tab */}
+          {activeTab === 'backup' && (
+            <BackupTab
+              usedBytes={usedBytes}
+              onExport={onExportData}
+              onImport={onImportData}
+            />
           )}
         </div>
 

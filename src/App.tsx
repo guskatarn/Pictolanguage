@@ -10,6 +10,7 @@ import SentenceBar from './components/SentenceBar'
 import CoreVocabularyBar from './components/CoreVocabularyBar'
 import HistoryPanel from './components/HistoryPanel'
 import SettingsPanel from './components/SettingsPanel'
+import StorageAlert from './components/StorageAlert'
 import { DEFAULT_CATEGORIES } from './data/defaultCategories'
 import { CORE_VOCABULARY } from './data/coreVocabulary'
 
@@ -19,6 +20,9 @@ export default function App() {
   const {
     profiles,
     activeProfile,
+    usedBytes,
+    storageError,
+    dismissStorageError,
     setActiveProfileId,
     createProfile,
     updateProfile,
@@ -29,6 +33,8 @@ export default function App() {
     removeCustomPictogram,
     updateSettings,
     reorderCategories,
+    exportData,
+    importData,
   } = useProfiles()
 
   const { categories, getPictogramsForCategory, searchArasaac } = usePictograms(activeProfile)
@@ -125,16 +131,23 @@ export default function App() {
     updateProfile(profile.id, { name: profile.name, avatar: profile.avatar })
   }
 
+  const storageAlert = storageError ? (
+    <StorageAlert message={storageError} onDismiss={dismissStorageError} />
+  ) : null
+
   // Show profile selector if no active profile
   if (!activeProfile) {
     return (
-      <ProfileSelector
-        profiles={profiles}
-        onSelect={handleSelectProfile}
-        onCreate={handleCreateProfile}
-        onEdit={handleEditProfile}
-        onDelete={deleteProfile}
-      />
+      <>
+        <ProfileSelector
+          profiles={profiles}
+          onSelect={handleSelectProfile}
+          onCreate={handleCreateProfile}
+          onEdit={handleEditProfile}
+          onDelete={deleteProfile}
+        />
+        {storageAlert}
+      </>
     )
   }
 
@@ -257,8 +270,13 @@ export default function App() {
           onRemoveCustomPictogram={(id) => removeCustomPictogram(activeProfile.id, id)}
           onToggleHide={(id) => toggleHidePictogram(activeProfile.id, id)}
           searchArasaac={searchArasaac}
+          usedBytes={usedBytes}
+          onExportData={exportData}
+          onImportData={importData}
         />
       )}
+
+      {storageAlert}
     </div>
   )
 }

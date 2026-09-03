@@ -69,3 +69,17 @@ export interface InstallPromptEvent extends Event {
   prompt(): Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
+
+/** Contenu intégral persisté dans `localStorage` (et exporté tel quel). */
+export interface StoredData {
+  profiles: UserProfile[]
+  activeProfileId: string | null
+}
+
+/** Enveloppe d'un fichier de sauvegarde exporté par l'utilisateur. */
+export interface BackupFile {
+  app: 'pictolanguage'
+  version: number
+  exportedAt: string
+  data: StoredData
+}

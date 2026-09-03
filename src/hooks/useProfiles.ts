@@ -1,44 +1,30 @@
-import { useState, useCallback } from 'react'
-import { UserProfile, ProfileSettings, CustomPictogram, HistoryEntry } from '../types'
+import { useState, useCallback, useMemo } from 'react'
+import {
+  UserProfile,
+  ProfileSettings,
+  CustomPictogram,
+  HistoryEntry,
+  StoredData,
+} from '../types'
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories'
+import { loadData, saveData, parseBackup, downloadBackup } from '../utils/storage'
 
-const STORAGE_KEY = 'pictoapp-data'
 const MAX_HISTORY = 20
-const MAX_PROFILES = 6
+export const MAX_PROFILES = 6
 
-interface StoredData {
-  profiles: UserProfile[]
-  activeProfileId: string | null
+export type ImportMode = 'replace' | 'merge'
+export interface ImportOutcome {
+  ok: boolean
+  message: string
 }
 
-function loadData(): StoredData {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as StoredData
-      // Migration : les profils créés avant l'ajout de showCoreBar n'ont pas
-      // ce champ dans leurs settings stockés — on le complète à true.
-      return {
-        ...parsed,
-        profiles: parsed.profiles.map((p) => ({
-          ...p,
-          settings: { ...p.settings, showCoreBar: p.settings?.showCoreBar ?? true },
-        })),
-      }
-    }
-  } catch {
-    // localStorage indisponible (navigation privée, quota...) : on repart à vide.
-  }
-  return { profiles: [], activeProfileId: null }
-}
+const QUOTA_MESSAGE =
+  "L'espace de stockage de l'appareil est plein : la dernière modification n'a pas été enregistrée. " +
+  'Exportez vos données (onglet « Sauvegarde »), puis supprimez quelques pictogrammes personnalisés ou un profil inutilisé.'
 
-function saveData(data: StoredData) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  } catch {
-    // Échec silencieux (quota dépassé, navigation privée...) : rien à faire de plus ici.
-  }
-}
+const UNAVAILABLE_MESSAGE =
+  "Le stockage de cet appareil est inaccessible (navigation privée ?). L'application reste utilisable, " +
+  'mais les modifications seront perdues à la fermeture.'
 
 function createDefaultProfile(name: string, avatar: string): UserProfile {
   return {
@@ -62,13 +48,41 @@ function createDefaultProfile(name: string, avatar: string): UserProfile {
 
 export function useProfiles() {
   const [data, setData] = useState<StoredData>(() => loadData())
+  const [storageError, setStorageError] = useState<string | null>(null)
 
-  const persist = useCallback((next: StoredData) => {
-    setData(next)
-    saveData(next)
+  /**
+   * Enregistre **avant** de mettre à jour l'état affiché.
+   *
+   * L'ordre importe : en écrivant après coup et en avalant l'exception, une
+   * saturation du quota laissait l'interface afficher des données qui n'étaient
+   * plus persistées nulle part — tout disparaissait au rechargement suivant,
+   * sans le moindre message. Ici, un échec de quota annule la modification à
+   * l'écran, si bien que ce qui est affiché correspond toujours à ce qui est
+   * réellement enregistré.
+   */
+  const persist = useCallback((next: StoredData): boolean => {
+    const result = saveData(next)
+    if (result.ok) {
+      setData(next)
+      return true
+    }
+    if (result.reason === 'unavailable') {
+      // Stockage totalement inaccessible : refuser les modifications rendrait
+      // l'application inutilisable. On dégrade en session mémoire, en prévenant.
+      setData(next)
+      setStorageError(UNAVAILABLE_MESSAGE)
+      return true
+    }
+    setStorageError(QUOTA_MESSAGE)
+    return false
   }, [])
 
+  const dismissStorageError = useCallback(() => setStorageError(null), [])
+
   const activeProfile = data.profiles.find((p) => p.id === data.activeProfileId) ?? null
+
+  /** Taille approximative des données persistées, pour la jauge d'occupation. */
+  const usedBytes = useMemo(() => JSON.stringify(data).length, [data])
 
   const setActiveProfileId = useCallback(
     (id: string | null) => {
@@ -86,8 +100,7 @@ export function useProfiles() {
         profiles: [...data.profiles, profile],
         activeProfileId: profile.id,
       }
-      persist(next)
-      return profile
+      return persist(next) ? profile : null
     },
     [data, persist],
   )
@@ -169,8 +182,9 @@ export function useProfiles() {
     [data, persist],
   )
 
+  /** Renvoie `false` si l'ajout n'a pas pu être enregistré (quota saturé). */
   const addCustomPictogram = useCallback(
-    (profileId: string, picto: Omit<CustomPictogram, 'id'>) => {
+    (profileId: string, picto: Omit<CustomPictogram, 'id'>): boolean => {
       const custom: CustomPictogram = { ...picto, id: crypto.randomUUID() }
       const next: StoredData = {
         ...data,
@@ -179,7 +193,7 @@ export function useProfiles() {
           return { ...p, customPictograms: [...p.customPictograms, custom] }
         }),
       }
-      persist(next)
+      return persist(next)
     },
     [data, persist],
   )
@@ -229,9 +243,69 @@ export function useProfiles() {
     [data, persist],
   )
 
+  const exportData = useCallback(() => downloadBackup(data), [data])
+
+  /**
+   * Restaure un fichier de sauvegarde. `replace` écrase tout ; `merge` n'ajoute
+   * que les profils absents (cas « une tablette à la maison, une à l'école »)
+   * et n'écrase jamais un profil existant.
+   */
+  const importData = useCallback(
+    (raw: string, mode: ImportMode): ImportOutcome => {
+      let incoming: StoredData
+      try {
+        incoming = parseBackup(raw)
+      } catch (err) {
+        return {
+          ok: false,
+          message: err instanceof Error ? err.message : 'Import impossible.',
+        }
+      }
+
+      if (mode === 'replace') {
+        if (!persist(incoming)) return { ok: false, message: QUOTA_MESSAGE }
+        const count = incoming.profiles.length
+        return {
+          ok: true,
+          message: `${count} profil${count > 1 ? 's' : ''} restauré${count > 1 ? 's' : ''}. Les données précédentes ont été remplacées.`,
+        }
+      }
+
+      const existingIds = new Set(data.profiles.map((p) => p.id))
+      const candidates = incoming.profiles.filter((p) => !existingIds.has(p.id))
+      if (!candidates.length) {
+        return { ok: false, message: 'Ces profils sont déjà présents sur cet appareil.' }
+      }
+
+      const room = MAX_PROFILES - data.profiles.length
+      if (room <= 0) {
+        return {
+          ok: false,
+          message: `Nombre maximum de profils atteint (${MAX_PROFILES}). Supprimez-en un avant d'importer.`,
+        }
+      }
+
+      const added = candidates.slice(0, room)
+      const next: StoredData = { ...data, profiles: [...data.profiles, ...added] }
+      if (!persist(next)) return { ok: false, message: QUOTA_MESSAGE }
+
+      const ignored = candidates.length - added.length
+      return {
+        ok: true,
+        message:
+          `${added.length} profil${added.length > 1 ? 's' : ''} ajouté${added.length > 1 ? 's' : ''}.` +
+          (ignored ? ` ${ignored} ignoré${ignored > 1 ? 's' : ''} faute de place.` : ''),
+      }
+    },
+    [data, persist],
+  )
+
   return {
     profiles: data.profiles,
     activeProfile,
+    usedBytes,
+    storageError,
+    dismissStorageError,
     setActiveProfileId,
     createProfile,
     updateProfile,
@@ -243,5 +317,7 @@ export function useProfiles() {
     removeCustomPictogram,
     updateSettings,
     reorderCategories,
+    exportData,
+    importData,
   }
 }
