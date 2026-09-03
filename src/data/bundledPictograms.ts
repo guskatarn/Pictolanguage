@@ -23,6 +23,7 @@ export const BUNDLED_PICTOGRAM_IDS: ReadonlySet<number> = new Set([
   6632,
   6964,
   8142,
+  8289,
   8312,
   9813,
   10261,
@@ -44,5 +45,4 @@ export const BUNDLED_PICTOGRAM_IDS: ReadonlySet<number> = new Set([
   35547,
   35567,
   37163,
-  38251,
 ])

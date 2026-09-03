@@ -15,7 +15,12 @@ export const CORE_VOCABULARY: PictogramEntry[] = [
   { id: 5441, word: 'vouloir', categoryId: 'core' },
   { id: 19524, word: 'aide', categoryId: 'core' },
   { id: 37163, word: 'encore', categoryId: 'core' },
-  { id: 38251, word: 'stop', categoryId: 'core' },
+  // Panneau octogonal rouge plutôt que l'ancien 38251 (carré noir dans un
+  // cercle), sémantiquement vide pour un enfant : la forme et la couleur du
+  // panneau routier portent le sens à elles seules, et restent lisibles à la
+  // taille réelle d'affichage (40 px) où les pictogrammes de geste deviennent
+  // illisibles. Le mot « STOP » qu'il contient est redondant, non porteur.
+  { id: 8289, word: 'stop', categoryId: 'core' },
   { id: 5584, word: 'oui', categoryId: 'core' },
   { id: 5526, word: 'non', categoryId: 'core' },
   { id: 11538, word: 'aimer', categoryId: 'core' },
