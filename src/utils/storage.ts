@@ -1,4 +1,4 @@
-import { BackupFile, StoredData, UserProfile } from '../types'
+import { BackupFile, CustomPictogram, StoredData, UserProfile } from '../types'
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories'
 
 const STORAGE_KEY = 'pictoapp-data'
@@ -33,6 +33,25 @@ export function isStorageWritable(): boolean {
   return storageWritable
 }
 
+const STORAGE_CATEGORY_IDS = new Set(
+  DEFAULT_CATEGORIES.filter((c) => !c.isView).map((c) => c.id),
+)
+const FALLBACK_CATEGORY_ID = DEFAULT_CATEGORIES.find((c) => !c.isView)?.id ?? ''
+
+/**
+ * Rattache à une catégorie réelle un pictogramme personnalisé qui n'en a plus.
+ *
+ * Une version antérieure proposait « Favoris » comme destination à l'ajout, or
+ * ce n'est qu'une vue : les pictogrammes concernés étaient bien enregistrés mais
+ * n'apparaissaient dans aucune grille, ni dans les catégories, ni dans les
+ * favoris où ils n'avaient pas été inscrits. Les rattacher au chargement les
+ * rend de nouveau visibles plutôt que de laisser un travail perdu.
+ */
+function repairCategory(picto: CustomPictogram): CustomPictogram {
+  if (STORAGE_CATEGORY_IDS.has(picto.categoryId)) return picto
+  return { ...picto, categoryId: FALLBACK_CATEGORY_ID }
+}
+
 function isQuotaError(err: unknown): boolean {
   return (
     err instanceof DOMException &&
@@ -60,7 +79,9 @@ function normalizeProfile(raw: Partial<UserProfile>): UserProfile | null {
     categoryOrder: Array.isArray(raw.categoryOrder) && raw.categoryOrder.length
       ? raw.categoryOrder
       : DEFAULT_CATEGORIES.map((c) => c.id),
-    customPictograms: Array.isArray(raw.customPictograms) ? raw.customPictograms : [],
+    customPictograms: Array.isArray(raw.customPictograms)
+      ? raw.customPictograms.map(repairCategory)
+      : [],
     history: Array.isArray(raw.history) ? raw.history : [],
     settings: {
       pictogramSize: raw.settings?.pictogramSize ?? 'M',

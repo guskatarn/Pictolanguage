@@ -17,6 +17,7 @@ export const FAVORITES_CATEGORY: Category = {
   bgColor: '#FEF9C3',
   tabColor: '#EAB308',
   pictogramIds: [],
+  isView: true,
 }
 
 export const DEFAULT_CATEGORIES: Category[] = [

@@ -68,6 +68,60 @@ describe('saveData / loadData', () => {
   })
 })
 
+describe('réparation des pictogrammes orphelins', () => {
+  const orphelin = {
+    id: 'c1',
+    word: 'chien',
+    imageUrl: 'data:image/webp;base64,AAAA',
+    categoryId: 'favoris',
+  }
+
+  it('rattache à une vraie catégorie un pictogramme rangé dans une vue', () => {
+    // Une version antérieure proposait « Favoris » comme destination : les
+    // pictogrammes concernés n'apparaissaient plus nulle part.
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        profiles: [{ id: 'p1', name: 'Lina', customPictograms: [orphelin] }],
+        activeProfileId: 'p1',
+      }),
+    )
+    const repare = loadData().profiles[0].customPictograms[0]
+    expect(repare.categoryId).toBe('besoins')
+    expect(repare.word).toBe('chien')
+    expect(repare.imageUrl).toBe(orphelin.imageUrl)
+  })
+
+  it('répare aussi un pictogramme importé depuis une sauvegarde', () => {
+    const backup = JSON.stringify({
+      app: 'pictolanguage',
+      version: 1,
+      data: {
+        profiles: [{ id: 'p1', name: 'Lina', customPictograms: [orphelin] }],
+        activeProfileId: 'p1',
+      },
+    })
+    expect(parseBackup(backup).profiles[0].customPictograms[0].categoryId).toBe('besoins')
+  })
+
+  it('laisse intact un pictogramme correctement rangé', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        profiles: [
+          {
+            id: 'p1',
+            name: 'Lina',
+            customPictograms: [{ ...orphelin, categoryId: 'emotions' }],
+          },
+        ],
+        activeProfileId: 'p1',
+      }),
+    )
+    expect(loadData().profiles[0].customPictograms[0].categoryId).toBe('emotions')
+  })
+})
+
 describe('parseBackup', () => {
   it('accepte une sauvegarde produite par buildBackup', () => {
     const restored = parseBackup(JSON.stringify(buildBackup(data)))

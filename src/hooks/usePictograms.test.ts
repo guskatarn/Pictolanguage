@@ -10,16 +10,25 @@ const BOIRE = 6061
 const DORMIR = 6479
 
 describe('usePictograms — onglet Favoris', () => {
-  it('place les favoris en première position, avant les catégories', () => {
+  it('place les favoris en première position des onglets', () => {
     const { result } = renderHook(() => usePictograms(makeProfile()))
-    expect(result.current.categories[0].id).toBe(FAVORITES_CATEGORY_ID)
+    expect(result.current.tabs[0].id).toBe(FAVORITES_CATEGORY_ID)
+  })
+
+  it('exclut les favoris des catégories de rangement', () => {
+    // Distinction essentielle : « Favoris » est une vue. L'exposer comme
+    // catégorie de rangement y faisait atterrir les pictogrammes ajoutés,
+    // qui n'apparaissaient alors dans aucune grille.
+    const { result } = renderHook(() => usePictograms(makeProfile()))
+    expect(result.current.categories.map((c) => c.id)).not.toContain(FAVORITES_CATEGORY_ID)
+    expect(result.current.categories[0].id).toBe('besoins')
   })
 
   it('garde les favoris en tête même quand le parent réordonne ses catégories', () => {
     const profile = makeProfile({ categoryOrder: ['emotions', 'besoins'] })
     const { result } = renderHook(() => usePictograms(profile))
-    expect(result.current.categories[0].id).toBe(FAVORITES_CATEGORY_ID)
-    expect(result.current.categories[1].id).toBe('emotions')
+    expect(result.current.tabs[0].id).toBe(FAVORITES_CATEGORY_ID)
+    expect(result.current.tabs[1].id).toBe('emotions')
   })
 
   it('place en fin de liste une catégorie absente de l’ordre du profil', () => {
@@ -28,7 +37,7 @@ describe('usePictograms — onglet Favoris', () => {
     const profile = makeProfile({ categoryOrder: ['emotions', 'besoins'] })
     const { result } = renderHook(() => usePictograms(profile))
     const ids = result.current.categories.map((c) => c.id)
-    expect(ids.slice(0, 3)).toEqual([FAVORITES_CATEGORY_ID, 'emotions', 'besoins'])
+    expect(ids.slice(0, 2)).toEqual(['emotions', 'besoins'])
     expect(ids).toContain('aliments')
     expect(ids.indexOf('aliments')).toBeGreaterThan(ids.indexOf('besoins'))
   })

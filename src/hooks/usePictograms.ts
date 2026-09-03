@@ -13,13 +13,23 @@ export function usePictograms(activeProfile: UserProfile | null) {
       const index = activeProfile?.categoryOrder.indexOf(id) ?? -1
       return index === -1 ? Number.MAX_SAFE_INTEGER : index
     }
-    const ordered = activeProfile
+    return activeProfile
       ? [...DEFAULT_CATEGORIES].sort((a, b) => rank(a.id) - rank(b.id))
       : DEFAULT_CATEGORIES
-    // Les favoris restent en tête et hors de l'ordre personnalisable : leur
-    // position ne doit jamais bouger, y compris quand le parent réordonne.
-    return [FAVORITES_CATEGORY, ...ordered]
   }, [activeProfile])
+
+  /**
+   * Onglets affichés au-dessus de la grille.
+   *
+   * Distinct de `categories` à dessein : « Favoris » est une **vue**, pas une
+   * catégorie de rangement. Les confondre revenait à proposer « Favoris » comme
+   * destination lors de l'ajout d'un pictogramme, qui atterrissait alors dans
+   * une catégorie inexistante et n'apparaissait plus nulle part.
+   *
+   * Les favoris restent en tête et hors de l'ordre personnalisable : leur
+   * position ne doit jamais bouger, y compris quand le parent réordonne.
+   */
+  const tabs: Category[] = useMemo(() => [FAVORITES_CATEGORY, ...categories], [categories])
 
   const getPictogramsForCategory = useMemo(() => {
     return (categoryId: string): PictogramItem[] => {
@@ -128,5 +138,5 @@ export function usePictograms(activeProfile: UserProfile | null) {
     }
   }
 
-  return { categories, getPictogramsForCategory, getFavoritePictograms, searchArasaac }
+  return { categories, tabs, getPictogramsForCategory, getFavoritePictograms, searchArasaac }
 }

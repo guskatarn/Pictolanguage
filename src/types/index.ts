@@ -67,6 +67,13 @@ export interface Category {
   bgColor: string
   tabColor: string
   pictogramIds: number[]
+  /**
+   * Vue synthétique plutôt que catégorie de rangement : elle s'affiche comme un
+   * onglet mais ne peut pas contenir de pictogramme. Aucune interface ne doit la
+   * proposer comme destination — un pictogramme qui y atterrit n'apparaît
+   * ensuite dans aucune grille.
+   */
+  isView?: boolean
 }
 
 export interface InstallPromptEvent extends Event {

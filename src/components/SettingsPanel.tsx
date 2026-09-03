@@ -39,12 +39,16 @@ export default function SettingsPanel({
   onExportData,
   onImportData,
 }: Props) {
+  // Les vues (« Favoris ») ne peuvent pas accueillir de pictogramme : les
+  // exclure ici évite qu'un ajout disparaisse dans une catégorie inexistante.
+  const storageCategories = categories.filter((c) => !c.isView)
+
   const [activeTab, setActiveTab] = useState<Tab>('display')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<{ arasaacId?: number; word: string; imageUrl: string }[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [customWord, setCustomWord] = useState('')
-  const [customCategory, setCustomCategory] = useState(categories[0]?.id ?? '')
+  const [customCategory, setCustomCategory] = useState(storageCategories[0]?.id ?? '')
   const [customImageUrl, setCustomImageUrl] = useState('')
   const [customError, setCustomError] = useState<string | null>(null)
   const [isPreparingImage, setIsPreparingImage] = useState(false)
@@ -240,7 +244,7 @@ export default function SettingsPanel({
           {activeTab === 'categories' && (
             <CategoryManager
               profile={profile}
-              categories={categories}
+              categories={storageCategories}
               onReorderCategories={onReorderCategories}
               onToggleHide={onToggleHide}
               onToggleHideCustom={onToggleHideCustom}
@@ -328,7 +332,7 @@ export default function SettingsPanel({
                       onChange={(e) => setCustomCategory(e.target.value)}
                       className="w-full border-2 border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:border-violet-400 focus:outline-none"
                     >
-                      {categories.map((c) => (
+                      {storageCategories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
                         </option>
@@ -372,7 +376,8 @@ export default function SettingsPanel({
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-sm text-gray-800 truncate">{c.word}</p>
                           <p className="text-xs text-gray-500">
-                            {categories.find((cat) => cat.id === c.categoryId)?.name ?? c.categoryId}
+                            {storageCategories.find((cat) => cat.id === c.categoryId)?.name ??
+                              c.categoryId}
                           </p>
                         </div>
                         <button

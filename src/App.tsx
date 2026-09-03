@@ -40,7 +40,9 @@ export default function App() {
     importData,
   } = useProfiles()
 
-  const { categories, getPictogramsForCategory, getFavoritePictograms, searchArasaac } =
+  // `categories` = catégories de rangement (destination possible d'un
+  // pictogramme). `tabs` = ce qu'affiche la barre d'onglets, favoris compris.
+  const { categories, tabs, getPictogramsForCategory, getFavoritePictograms, searchArasaac } =
     usePictograms(activeProfile)
   const { speak, isSpeaking } = useSpeech()
 
@@ -63,12 +65,13 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
 
-  // Sync active category with profile order
+  // Sync active category with profile order. Comparé aux onglets et non aux
+  // catégories : « Favoris » est un onglet valide, qu'il ne faut pas réinitialiser.
   useEffect(() => {
-    if (categories.length > 0 && !categories.find((c) => c.id === activeCategory)) {
-      setActiveCategory(categories[0].id)
+    if (tabs.length > 0 && !tabs.find((c) => c.id === activeCategory)) {
+      setActiveCategory(tabs[0].id)
     }
-  }, [categories, activeCategory])
+  }, [tabs, activeCategory])
 
   const isFavoritesTab = activeCategory === FAVORITES_CATEGORY_ID
   const pictograms = isFavoritesTab
@@ -232,7 +235,7 @@ export default function App() {
 
       {/* Category tabs */}
       <CategoryTabs
-        categories={categories}
+        categories={tabs}
         activeId={activeCategory}
         onSelect={(id) => {
           setActiveCategory(id)
