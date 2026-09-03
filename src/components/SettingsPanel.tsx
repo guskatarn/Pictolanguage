@@ -128,12 +128,12 @@ export default function SettingsPanel({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 px-2 py-2 bg-violet-50 shrink-0 overflow-x-auto">
+        <div className="flex gap-0.5 px-1.5 py-2 bg-violet-50 shrink-0 overflow-x-auto">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`shrink-0 flex flex-col items-center px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`shrink-0 flex flex-col items-center px-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === t.id
                   ? 'bg-violet-600 text-white'
                   : 'text-gray-500 hover:bg-violet-100'
