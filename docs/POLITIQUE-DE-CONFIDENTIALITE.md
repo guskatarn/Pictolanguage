@@ -92,17 +92,21 @@ appareil**, afin de rester disponible hors connexion.
 
 La lecture des phrases utilise la synthèse vocale **de votre appareil**
 (fonction standard du système d'exploitation ou du navigateur). L'application ne
-dispose d'aucune voix qui lui soit propre et n'envoie le texte à aucun serveur.
+dispose d'aucune voix qui lui soit propre et ne transmet le texte à aucun
+serveur qui lui appartienne — elle n'en possède aucun.
 
-**Point important :** selon l'appareil et la voix installée, certains systèmes
-d'exploitation et navigateurs utilisent des voix dites « en ligne », traitées
-sur les serveurs de leur éditeur (Google, Apple, Microsoft…). Dans ce cas, la
-phrase composée est transmise à cet éditeur, selon **sa** politique de
-confidentialité, sans que l'application en soit informée ni puisse s'y opposer.
+**L'application choisit systématiquement une voix installée sur l'appareil**
+lorsqu'il en existe une en français. Dans ce cas — le plus courant — la phrase
+n'est transmise à personne et la lecture fonctionne sans connexion.
 
-Pour l'éviter, choisissez une voix hors ligne dans les réglages d'accessibilité
-ou de synthèse vocale de votre appareil. En mode avion, seules des voix locales
-sont utilisées.
+**Cas résiduel :** si aucune voix française n'est installée localement, le
+système peut ne proposer qu'une voix dite « en ligne », traitée sur les serveurs
+de son éditeur (Google, Apple, Microsoft…). La phrase composée est alors
+transmise à cet éditeur, selon **sa** politique de confidentialité. Nous
+préférons le mentionner plutôt que de l'ignorer, même si la situation est rare.
+
+Pour vous en prémunir avec certitude, installez une voix française hors ligne
+depuis les réglages d'accessibilité ou de synthèse vocale de votre appareil.
 
 ---
 

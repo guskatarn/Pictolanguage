@@ -20,7 +20,7 @@ Source de vérité du comportement de l'application :
 | --- | --- | --- | --- |
 | `api.arasaac.org/v1/pictograms/fr/search/…` | Recherche lancée par un adulte dans Paramètres → Ajouter | ARASAAC (Gouvernement d'Aragon, Espagne — UE) | Mot recherché + données de requête (IP, User-Agent) |
 | `static.arasaac.org/pictograms/…` | Ajout d'un pictogramme trouvé, ou image de base manquante | idem | Identifiant du pictogramme + données de requête |
-| Synthèse vocale | Chaque lecture à voix haute | Éditeur de l'OS/navigateur, **si la voix choisie est en ligne** | Texte de la phrase |
+| Synthèse vocale | Lecture à voix haute, **uniquement si aucune voix française locale n'est installée** (voir 2.2) | Éditeur de l'OS/navigateur | Texte de la phrase |
 
 Tout le reste (profils, pictogrammes personnalisés, favoris, masquages,
 historique, réglages) demeure dans `localStorage`, sur l'appareil.
@@ -90,10 +90,11 @@ confidentialité**, car les phrases composées par un enfant peuvent être
 sensibles, et l'utilisateur doit pouvoir choisir une voix hors ligne en
 connaissance de cause.
 
-> **Correctif recommandé :** privilégier une voix locale (`voice.localService`)
-> dans `src/hooks/useSpeech.ts`. Cela rendrait la promesse « rien ne sort de
-> l'appareil » exacte en toutes circonstances, **et** fiabiliserait la lecture
-> hors ligne, une voix en ligne échouant sans réseau. Voir §2.F de l'audit.
+> ✅ **Corrigé le 2026-09-03.** `selectVoice()` dans `src/hooks/useSpeech.ts`
+> privilégie désormais une voix `localService`, et la liste des voix est
+> rechargée sur l'évènement `voiceschanged` — sans quoi la toute première phrase
+> était prononcée sans voix choisie. Une voix en ligne n'est retenue que si
+> aucune voix française n'est installée sur l'appareil.
 
 ---
 
@@ -114,12 +115,34 @@ strictes que le régime général.
 | SDK conformes au programme Families | ✅ | Aucun SDK tiers |
 | Aucune fonction sociale ni contenu d'autres utilisateurs | ✅ | Application entièrement locale |
 
-### Hébergement de la politique
+### Hébergement de la politique — préparé le 2026-09-03
 
-Une URL publique et stable est exigée. Le dépôt étant public, **GitHub Pages**
-est l'option la plus directe et sans coût :
-`https://guskatarn.github.io/Pictolanguage/`. À activer dans les réglages du
-dépôt, puis à reporter dans la fiche Play Store et dans l'application.
+Le site GitHub Pages est configuré et prêt à être activé. Il ne publie **que**
+la politique de confidentialité : `docs/_config.yml` écarte explicitement
+`AUDIT.md` et le présent document, qui exposeraient sinon la feuille de route,
+l'analyse concurrentielle et ces notes internes.
+
+- `docs/_config.yml` — configuration Jekyll, thème et liste d'exclusion.
+- `docs/index.md` — page d'accueil du site, qui inclut la politique par
+  `include_relative`. La politique n'existe donc qu'en un seul exemplaire :
+  aucune copie à maintenir en parallèle.
+
+> ⚠️ **À faire dans l'ordre.** Renseigner d'abord les quatre marqueurs
+> `[[À COMPLÉTER]]` (voir §4), **puis seulement** activer Pages. Publier une
+> politique qui affiche encore ses réservations serait plus dommageable que de
+> ne rien publier, tant vis-à-vis de Google que des familles.
+
+**Activation** (nécessite les droits sur le dépôt, donc à faire par l'éditeur) :
+
+1. Dépôt GitHub → **Settings** → **Pages**.
+2. *Source* : « Deploy from a branch ».
+3. *Branch* : `main`, dossier `/docs`. **Save**.
+4. Attendre la fin du déploiement (onglet Actions), puis vérifier que
+   `https://guskatarn.github.io/Pictolanguage/` affiche bien la politique — et
+   que `/AUDIT.md` et `/PLAY-CONFORMITE.md` renvoient une erreur 404, preuve que
+   l'exclusion fonctionne.
+5. Reporter l'URL dans la fiche Play Store **et** dans l'application (exigence
+   Families : les deux sont requis).
 
 ---
 

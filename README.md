@@ -49,6 +49,12 @@ du service worker.
   `[[À COMPLÉTER]]` restent à renseigner par l'éditeur).
 - [`docs/PLAY-CONFORMITE.md`](docs/PLAY-CONFORMITE.md) — notes internes de
   préparation Play Store (formulaire Data safety, programme Families).
+
+Le dossier `docs/` sert aussi de source à un site GitHub Pages qui publie
+**uniquement** la politique de confidentialité (`docs/_config.yml` écarte les
+documents internes). Reste à activer dans Settings → Pages, branche `main`,
+dossier `/docs` — après avoir renseigné les marqueurs `[[À COMPLÉTER]]` de la
+politique.
 - [`NOTICE.md`](NOTICE.md) — licences des ressources tierces.
 
 ## Licence des pictogrammes

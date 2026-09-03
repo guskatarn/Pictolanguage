@@ -1,0 +1,16 @@
+# Configuration GitHub Pages.
+#
+# Le site publié n'a qu'une raison d'être : exposer la politique de
+# confidentialité à une URL publique et stable, exigée par Google Play.
+#
+# Les autres fichiers de ce dossier sont des documents de travail internes et
+# sont explicitement écartés du site : l'audit expose la feuille de route et
+# l'analyse concurrentielle, et les notes de conformité portent la mention
+# « à ne pas publier ».
+title: PictoLanguage
+description: Application de communication par pictogrammes pour enfants
+theme: jekyll-theme-minimal
+
+exclude:
+  - AUDIT.md
+  - PLAY-CONFORMITE.md
