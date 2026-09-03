@@ -44,6 +44,11 @@ du service worker.
 
 - [`docs/AUDIT.md`](docs/AUDIT.md) — état du projet, écarts avant publication
   Play Store, comparatif CAA et feuille de route.
+- [`docs/POLITIQUE-DE-CONFIDENTIALITE.md`](docs/POLITIQUE-DE-CONFIDENTIALITE.md) —
+  politique de confidentialité destinée à la publication (des marqueurs
+  `[[À COMPLÉTER]]` restent à renseigner par l'éditeur).
+- [`docs/PLAY-CONFORMITE.md`](docs/PLAY-CONFORMITE.md) — notes internes de
+  préparation Play Store (formulaire Data safety, programme Families).
 - [`NOTICE.md`](NOTICE.md) — licences des ressources tierces.
 
 ## Licence des pictogrammes
