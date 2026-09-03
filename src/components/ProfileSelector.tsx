@@ -59,7 +59,7 @@ export default function ProfileSelector({ profiles, onSelect, onCreate, onEdit, 
         <div className="w-20 h-20 rounded-3xl bg-white/20 flex items-center justify-center text-5xl mb-4 shadow-xl">
           🗣️
         </div>
-        <h1 className="text-3xl font-black text-white">PictoApp</h1>
+        <h1 className="text-3xl font-black text-white">disavecmoi</h1>
         <p className="text-violet-200 text-base mt-1">Qui es-tu ?</p>
       </div>
 

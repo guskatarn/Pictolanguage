@@ -4,7 +4,7 @@
 
 ## 1. Ce qui existe déjà
 
-Application web (PWA) "PictoApp" — React 18 + TypeScript + Vite + Tailwind CSS 4, packagée en PWA via `vite-plugin-pwa`. Aucun backend : toutes les données (profils, historique, pictogrammes personnalisés, réglages) sont stockées en `localStorage`.
+Application web (PWA) "disavecmoi" (anciennement "PictoApp") — React 18 + TypeScript + Vite + Tailwind CSS 4, packagée en PWA via `vite-plugin-pwa`. Aucun backend : toutes les données (profils, historique, pictogrammes personnalisés, réglages) sont stockées en `localStorage`.
 
 Fonctionnalités présentes :
 - Gestion multi-profils (jusqu'à 6), stockage local.

@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'PictoApp',
-        short_name: 'Picto',
+        name: 'disavecmoi',
+        short_name: 'disavecmoi',
         description: 'Application de communication par pictogrammes pour enfants TSA',
         theme_color: '#7C3AED',
         background_color: '#ffffff',

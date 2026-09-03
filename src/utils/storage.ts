@@ -1,6 +1,11 @@
 import { BackupFile, CustomPictogram, StoredData, UserProfile } from '../types'
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories'
 
+// Ces clés portent l'ancien nom de l'application, à dessein : les renommer
+// rendrait invisibles les profils déjà enregistrés sur les appareils, qui
+// resteraient stockés sous l'ancienne clé. Un identifiant technique n'a pas à
+// suivre le nom commercial ; ne pas « corriger » cette incohérence apparente
+// sans écrire au préalable une migration des données existantes.
 const STORAGE_KEY = 'pictoapp-data'
 const PROBE_KEY = 'pictoapp-storage-probe'
 const BACKUP_VERSION = 1
