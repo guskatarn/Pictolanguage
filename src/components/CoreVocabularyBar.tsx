@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { PictogramEntry } from '../types'
 import { getArasaacImageUrl } from '../data/defaultPictograms'
+import { usePictogramImage } from '../hooks/usePictogramImage'
 
 interface Props {
   words: PictogramEntry[]
@@ -8,8 +8,8 @@ interface Props {
 }
 
 function CoreWordButton({ entry, onClick }: { entry: PictogramEntry; onClick: Props['onClick'] }) {
-  const [imgError, setImgError] = useState(false)
   const imageUrl = getArasaacImageUrl(entry.id)
+  const { src, failed, onError } = usePictogramImage(imageUrl, entry.id)
 
   return (
     <button
@@ -27,14 +27,14 @@ function CoreWordButton({ entry, onClick }: { entry: PictogramEntry; onClick: Pr
       aria-label={entry.word}
     >
       <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg overflow-hidden">
-        {imgError ? (
+        {failed || !src ? (
           <span className="text-lg">🖼️</span>
         ) : (
           <img
-            src={imageUrl}
+            src={src}
             alt={entry.word}
             className="w-full h-full object-contain"
-            onError={() => setImgError(true)}
+            onError={onError}
             loading="lazy"
           />
         )}

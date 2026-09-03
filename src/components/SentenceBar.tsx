@@ -1,5 +1,6 @@
-import { useState } from 'react'
 import { SentenceItem } from '../types'
+import { getArasaacImageUrl } from '../data/defaultPictograms'
+import { usePictogramImage } from '../hooks/usePictogramImage'
 
 interface Props {
   items: SentenceItem[]
@@ -10,10 +11,10 @@ interface Props {
 }
 
 function MiniPicto({ item, onRemove }: { item: SentenceItem; onRemove: () => void }) {
-  const [imgError, setImgError] = useState(false)
-  const imageUrl = item.customImageUrl ?? (item.arasaacId
-    ? `https://static.arasaac.org/pictograms/${item.arasaacId}/${item.arasaacId}_500.png`
+  const imageUrl = item.customImageUrl ?? (item.arasaacId !== undefined
+    ? getArasaacImageUrl(item.arasaacId)
     : null)
+  const { src, failed, onError } = usePictogramImage(imageUrl, item.arasaacId)
 
   return (
     <button
@@ -24,12 +25,12 @@ function MiniPicto({ item, onRemove }: { item: SentenceItem; onRemove: () => voi
       title="Cliquer pour retirer"
     >
       <div className="w-12 h-12 flex items-center justify-center bg-white rounded-lg overflow-hidden">
-        {imageUrl && !imgError ? (
+        {src && !failed ? (
           <img
-            src={imageUrl}
+            src={src}
             alt={item.word}
             className="w-full h-full object-contain"
-            onError={() => setImgError(true)}
+            onError={onError}
           />
         ) : (
           <span className="text-2xl">🖼️</span>

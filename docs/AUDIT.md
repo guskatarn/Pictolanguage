@@ -57,6 +57,8 @@ ARASAAC est distribué sous licence **CC BY-NC-SA** (usage non commercial, attri
 
 > **[Précisé le 2026-09-03]** Embarquer les images dans l'`.aab` (option Capacitor, §2.A) constitue une **redistribution** des œuvres. C'est autorisé par CC BY-NC-SA, mais cela fait passer l'attribution visible du statut de bonne pratique à celui d'obligation juridique stricte. À traiter dans le même lot que l'embarquement des images.
 
+> ✅ **[Traité le 2026-09-03]** Les images étant désormais embarquées (§2.F.1), l'attribution est devenue obligatoire et a été ajoutée : mention permanente en pied du panneau Paramètres (auteur Sergio Palao, origine ARASAAC, Gouvernement d'Aragon, licence CC BY-NC-SA 4.0, liens cliquables) et fichier `NOTICE.md` à la racine du dépôt. **Reste à faire :** reprendre la même mention sur la fiche Play Store et sur l'éventuel site web.
+
 ### F. Fiabilité technique pour un usage quotidien
 
 - Aucune sauvegarde/export des données : tout est en `localStorage`. Si l'app est désinstallée, ou le cache navigateur vidé, les profils, l'historique et les pictogrammes personnalisés sont perdus définitivement. Pas d'export/import, pas de compte, pas de synchronisation multi-appareil.
@@ -66,9 +68,13 @@ ARASAAC est distribué sous licence **CC BY-NC-SA** (usage non commercial, attri
 
 > **[Ajouté le 2026-09-03 — deux constats aggravants]**
 >
-> **F.1 — Le cache d'images expire au bout de 30 jours.** `vite.config.ts` configure le `runtimeCaching` ARASAAC avec `maxAgeSeconds: 60 * 60 * 24 * 30` et `maxEntries: 500`. Workbox purge donc les images passé un mois. Une tablette utilisée hors ligne au quotidien voit sa grille se vider progressivement, **même si tout avait été correctement chargé au départ**. Le risque n'est pas seulement "au premier affichage" : il est récurrent. C'est l'argument décisif pour embarquer les images localement plutôt que d'ajuster les paramètres du cache.
+> ✅ **F.1 — RÉSOLU le 2026-09-03.** Les 42 pictogrammes du vocabulaire par défaut (35 catégories + 10 core, dont 3 communs) sont désormais **embarqués dans le dépôt** (`public/pictograms/<id>.png`, 864 Ko) et précachés par le service worker au moment de l'installation (52 entrées / 986 Kio dans le manifeste de précache). Ils ne dépendent plus du réseau ni de l'expiration du `runtimeCaching`. Constat d'origine conservé ci-dessous pour mémoire.
+>
+> **[Constat initial] Le cache d'images expire au bout de 30 jours.** `vite.config.ts` configure le `runtimeCaching` ARASAAC avec `maxAgeSeconds: 60 * 60 * 24 * 30` et `maxEntries: 500`. Workbox purge donc les images passé un mois. Une tablette utilisée hors ligne au quotidien voit sa grille se vider progressivement, **même si tout avait été correctement chargé au départ**. Le risque n'est pas seulement "au premier affichage" : il est récurrent. C'est l'argument décisif pour embarquer les images localement plutôt que d'ajuster les paramètres du cache.
 >
 > **F.2 — Perte de données silencieuse au dépassement de quota.** Les pictogrammes personnalisés sont stockés en data-URL base64 dans `localStorage` (`SettingsPanel.tsx`, `handleFileUpload`), or `localStorage` est plafonné à ~5 Mo et `saveData()` (`hooks/useProfiles.ts`) avale l'exception `QuotaExceededError` sans rien signaler. Un parent qui ajoute une dizaine de photos dépasse le quota : l'interface continue d'afficher les pictogrammes (présents en mémoire React) mais **plus rien n'est persisté et aucun message n'apparaît**. Tout est perdu au rechargement suivant — y compris les données antérieures valides, puisque chaque écriture réécrit l'objet complet. À traiter en priorité haute, au même titre que l'export/import : redimensionner/compresser les images à l'upload, détecter le quota, et prévenir l'utilisateur.
+>
+> **[Précisé le 2026-09-03]** Ce point reste entier, et il englobe un cas voisin non traité par l'embarquement des images : un pictogramme personnalisé **ajouté depuis la recherche ARASAAC** stocke l'URL distante dans `localStorage`, donc reste indisponible hors ligne. Le corriger (télécharger l'image à l'ajout) aggraverait mécaniquement le problème de quota — les deux sujets doivent donc être traités dans le même lot.
 
 ### G. Accessibilité spécifique au public visé
 
@@ -83,12 +89,12 @@ ARASAAC est distribué sous licence **CC BY-NC-SA** (usage non commercial, attri
 - Compte développeur Google Play à créer (frais unique), questionnaire de classification de contenu, ciblage d'audience, liste des pays de diffusion.
 - Pas de stratégie de version (numéro de version, changelog) ni de signature d'app configurée.
 
-> **[Précisé le 2026-09-03]** Le `favicon.ico` manquant n'a **aucun impact à l'exécution** : il n'apparaît que dans `includeAssets` du plugin PWA (qui ignore silencieusement les fichiers absents), tandis que `index.html` référence bien `/icon-192.png`, présent. C'est une ligne de configuration à nettoyer, pas un écart bloquant pour le store.
+> **[Précisé le 2026-09-03]** Le `favicon.ico` manquant n'a **aucun impact à l'exécution** : il n'apparaît que dans `includeAssets` du plugin PWA (qui ignore silencieusement les fichiers absents), tandis que `index.html` référence bien `/icon-192.png`, présent. C'est une ligne de configuration à nettoyer, pas un écart bloquant pour le store. ✅ **Nettoyée le 2026-09-03** (`favicon.ico` retiré d'`includeAssets`).
 
 ## 3. Chemin de mise en production suggéré (ordre de priorité)
 
 1. Décider de l'approche d'empaquetage (Capacitor recommandé pour la fiabilité offline) et faire fonctionner un premier build Android installable.
-2. Traiter le sujet critique : rendre l'app fiable hors-ligne (embarquer les pictogrammes localement plutôt que de dépendre d'ARASAAC en ligne à chaque usage), et ajouter un export/import des profils pour ne pas perdre les données.
+2. Traiter le sujet critique : rendre l'app fiable hors-ligne (~~embarquer les pictogrammes localement plutôt que de dépendre d'ARASAAC en ligne à chaque usage~~ ✅ **fait le 2026-09-03**), et ajouter un export/import des profils pour ne pas perdre les données **+ corriger la perte silencieuse au dépassement de quota (§2.F.2)** — prochain lot.
 3. Finir la fonctionnalité "favoris" à moitié câblée, ou la retirer proprement.
 4. Rédiger la politique de confidentialité, remplir le formulaire Data safety, vérifier l'attribution ARASAAC et la compatibilité de licence avec le modèle de diffusion choisi (gratuit sans pub obligatoire tant qu'ARASAAC est utilisé).
 5. Adapter la mise en page pour tablette/PC (grille, orientation) et tester sur plusieurs formats d'écran.
@@ -136,6 +142,7 @@ Comparaison avec les applications de référence en communication alternative et
 ## 5. Journal d'implémentation
 
 - **2026-09-02** — Barre de vocabulaire "core" toujours visible : nouveaux fichiers `src/data/coreVocabulary.ts` et `src/components/CoreVocabularyBar.tsx`, branchement dans `App.tsx`, réglage `showCoreBar` (avec migration des profils existants) dans `types/index.ts` et `hooks/useProfiles.ts`, toggle dans `SettingsPanel.tsx`. Vérifié par build TypeScript, ESLint, `npm run build`, et test visuel Playwright (affichage + bascule du réglage). Corrigé au passage deux erreurs de lint préexistantes (blocs `catch` vides, variable non utilisée) sans rapport avec la fonctionnalité.
+- **2026-09-03** — **Pictogrammes par défaut embarqués localement (feuille de route, étape 2, première moitié).** Nouveau script `scripts/fetch-pictograms.mjs` (`npm run pictograms`) : il extrait les ids de `defaultPictograms.ts` et `coreVocabulary.ts`, télécharge les PNG 500 px depuis ARASAAC dans `public/pictograms/`, et génère `src/data/bundledPictograms.ts` (liste des ids réellement disponibles). `getArasaacImageUrl()` sert désormais l'image locale pour un id embarqué et ne retombe sur `static.arasaac.org` que pour les autres (résultats de recherche). Nouveau hook `usePictogramImage` : repli en cascade image locale → URL distante → placeholder, branché dans `PictogramCard`, `CoreVocabularyBar` et `SentenceBar` (qui construisait son URL ARASAAC en dur). Attribution ARASAAC ajoutée en pied du panneau Paramètres + `NOTICE.md`. `favicon.ico` retiré d'`includeAssets`. Vérifié par `tsc -b`, `vite build` (précache : 52 entrées / 986 Kio), `eslint`, et test HTTP sur `vite preview` (image servie en local en 200, présente dans le manifeste de précache de `sw.js`).
 - **2026-09-03** — Mise sous contrôle de version du projet (`git init` + premier commit de l'état existant) et versionnement du présent audit dans `docs/AUDIT.md`. Relecture complète de l'audit contre le code source : toutes les constatations techniques confirmées, quatre précisions ajoutées (§2.A, §2.E, §2.F avec deux constats aggravants, §2.H). Aucune modification du code applicatif.
 
 ## 6. Idées pour se démarquer (au-delà du simple rattrapage des concurrents)

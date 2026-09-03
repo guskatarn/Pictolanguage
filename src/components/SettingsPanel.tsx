@@ -367,6 +367,35 @@ export default function SettingsPanel({
             </div>
           )}
         </div>
+
+        {/*
+          Attribution ARASAAC — obligation juridique, pas une politesse : les
+          pictogrammes sont sous licence CC BY-NC-SA et l'application les
+          redistribue (images embarquées dans public/pictograms/). Voir NOTICE.md.
+        */}
+        <div className="shrink-0 border-t border-gray-200 bg-gray-50 px-4 py-2.5">
+          <p className="text-[11px] leading-snug text-gray-500 text-center">
+            Pictogrammes :{' '}
+            <a
+              href="https://arasaac.org"
+              target="_blank"
+              rel="noreferrer"
+              className="underline text-violet-600"
+            >
+              ARASAAC
+            </a>{' '}
+            — auteur Sergio Palao, propriété du Gouvernement d'Aragon, sous licence{' '}
+            <a
+              href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr"
+              target="_blank"
+              rel="noreferrer"
+              className="underline text-violet-600"
+            >
+              CC BY-NC-SA 4.0
+            </a>
+            .
+          </p>
+        </div>
       </div>
     </div>
   )

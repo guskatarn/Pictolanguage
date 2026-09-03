@@ -1,50 +1,55 @@
-# React + TypeScript + Vite
+# PictoLanguage
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Application web (PWA) de **communication alternative et améliorée (CAA) par
+pictogrammes**, destinée aux enfants avec TSA. Composition de phrases par
+pictogrammes, lecture à voix haute (synthèse vocale française), profils
+multiples, fonctionnement hors ligne.
 
-Currently, two official plugins are available:
+Aucun backend, aucun compte, aucune collecte : toutes les données (profils,
+historique, pictogrammes personnalisés, réglages) restent dans le
+`localStorage` de l'appareil.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Démarrage
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm install
+npm run dev
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+Node ≥ 20.11 requis.
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+## Scripts
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+| Script | Rôle |
+| --- | --- |
+| `npm run dev` | Serveur de développement Vite |
+| `npm run build` | Vérification TypeScript + build de production dans `dist/` |
+| `npm run preview` | Sert le build de production |
+| `npm run lint` | ESLint |
+| `npm run pictograms` | (Re)télécharge les pictogrammes ARASAAC du vocabulaire par défaut dans `public/pictograms/` et régénère `src/data/bundledPictograms.ts` |
+
+À lancer après avoir ajouté des entrées dans `src/data/defaultPictograms.ts`
+ou `src/data/coreVocabulary.ts` :
+
+```bash
+npm run pictograms          # ne télécharge que les images manquantes
+npm run pictograms -- --force   # retélécharge tout
 ```
+
+Les images téléchargées sont **versionnées dans le dépôt** : c'est ce qui rend
+l'application utilisable hors ligne dès l'installation, sans dépendre du cache
+du service worker.
+
+## Documentation
+
+- [`docs/AUDIT.md`](docs/AUDIT.md) — état du projet, écarts avant publication
+  Play Store, comparatif CAA et feuille de route.
+- [`NOTICE.md`](NOTICE.md) — licences des ressources tierces.
+
+## Licence des pictogrammes
+
+Les pictogrammes proviennent d'[ARASAAC](https://arasaac.org) (auteur : Sergio
+Palao, propriété du Gouvernement d'Aragon), sous licence
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr).
+**L'attribution est obligatoire et toute monétisation est exclue** tant que ces
+pictogrammes sont utilisés. Voir [`NOTICE.md`](NOTICE.md).

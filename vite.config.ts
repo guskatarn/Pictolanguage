@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
+      includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'PictoApp',
         short_name: 'Picto',
@@ -38,6 +38,10 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
+          // Ne concerne plus que les pictogrammes hors vocabulaire par défaut
+          // (résultats de recherche ARASAAC) : ceux du vocabulaire par défaut
+          // sont embarqués dans public/pictograms/ et précachés via globPatterns,
+          // donc jamais purgés par l'expiration ci-dessous.
           {
             urlPattern: /^https:\/\/static\.arasaac\.org\/pictograms\/.*/i,
             handler: 'CacheFirst',

@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { PictogramItem, PictogramSize } from '../types'
+import { usePictogramImage } from '../hooks/usePictogramImage'
 
 interface Props {
   picto: PictogramItem
@@ -16,7 +16,7 @@ const sizeMap: Record<PictogramSize, { img: number; text: string; padding: strin
 }
 
 export default function PictogramCard({ picto, size, bgColor, borderColor, onClick }: Props) {
-  const [imgError, setImgError] = useState(false)
+  const { src, failed, onError } = usePictogramImage(picto.imageUrl, picto.arasaacId)
   const s = sizeMap[size]
 
   return (
@@ -30,16 +30,16 @@ export default function PictogramCard({ picto, size, bgColor, borderColor, onCli
         className="flex items-center justify-center rounded-xl overflow-hidden bg-white"
         style={{ width: s.img, height: s.img, minWidth: s.img, minHeight: s.img }}
       >
-        {imgError ? (
+        {failed || !src ? (
           <span style={{ fontSize: s.img * 0.45 }}>🖼️</span>
         ) : (
           <img
-            src={picto.imageUrl}
+            src={src}
             alt={picto.word}
             width={s.img}
             height={s.img}
             className="object-contain"
-            onError={() => setImgError(true)}
+            onError={onError}
             loading="lazy"
           />
         )}
