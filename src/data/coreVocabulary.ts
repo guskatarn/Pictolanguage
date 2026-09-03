@@ -20,5 +20,8 @@ export const CORE_VOCABULARY: PictogramEntry[] = [
   { id: 5526, word: 'non', categoryId: 'core' },
   { id: 11538, word: 'aimer', categoryId: 'core' },
   { id: 28431, word: 'donner', categoryId: 'core' },
-  { id: 8081, word: 'fini', categoryId: 'core' },
+  // 28429 représente le geste « fini » (mains croisées qui s'écartent), signe
+  // standard en CAA. L'ancien 8081 affichait « COLORIN COLORADO », formule
+  // espagnole de fin de conte : du texte, illisible pour un enfant francophone.
+  { id: 28429, word: 'fini', categoryId: 'core' },
 ]

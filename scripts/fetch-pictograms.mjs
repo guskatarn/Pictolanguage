@@ -14,7 +14,14 @@
  * d'Aragon). Les embarquer constitue une redistribution : l'attribution
  * visible dans l'application est donc obligatoire.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+  readdirSync,
+  unlinkSync,
+} from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -60,6 +67,17 @@ for (const id of ids) {
   }
 }
 
+// Ce dossier est entièrement généré par le présent script : une image qui ne
+// correspond plus à aucun mot du vocabulaire est un reliquat. La laisser
+// coûterait à l'utilisateur, le service worker précachant tout le dossier à
+// l'installation — un pictogramme remplacé y pèserait deux fois.
+const expected = new Set(ids.map((id) => `${id}.png`))
+const orphans = readdirSync(outDir).filter((f) => f.endsWith('.png') && !expected.has(f))
+for (const file of orphans) {
+  unlinkSync(join(outDir, file))
+  process.stdout.write(`− ${file} (retiré : plus référencé)\n`)
+}
+
 const available = ids.filter((id) => existsSync(join(outDir, `${id}.png`)))
 
 writeFileSync(
@@ -75,7 +93,7 @@ ${available.map((id) => `  ${id},`).join('\n')}
 )
 
 console.log(
-  `\n${downloaded} téléchargé(s), ${skipped} déjà présent(s), ${failed.length} en échec` +
+  `\n${downloaded} téléchargé(s), ${skipped} déjà présent(s), ${orphans.length} retiré(s), ${failed.length} en échec` +
     (failed.length ? ` : ${failed.join(', ')}` : '') +
     `\n${available.length}/${ids.length} pictogrammes embarqués.`,
 )

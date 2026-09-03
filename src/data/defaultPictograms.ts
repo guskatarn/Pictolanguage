@@ -30,7 +30,7 @@ export const DEFAULT_PICTOGRAMS: PictogramEntry[] = [
   { id: 3082,  word: 'école',         categoryId: 'lieux' },
   { id: 6964,  word: 'maison',        categoryId: 'lieux' },
   { id: 2859,  word: 'parc',          categoryId: 'lieux' },
-  { id: 6930,  word: 'salle de bain', categoryId: 'lieux' },
+  { id: 33954, word: 'salle de bain', categoryId: 'lieux' },
   { id: 10752, word: 'cuisine',       categoryId: 'lieux' },
   // Personnes
   { id: 2458,  word: 'maman',         categoryId: 'personnes' },
