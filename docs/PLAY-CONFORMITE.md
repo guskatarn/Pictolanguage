@@ -105,7 +105,7 @@ strictes que le régime général.
 
 | Exigence | État | Reste à faire |
 | --- | --- | --- |
-| Politique de confidentialité liée depuis **la fiche Play Store** | Texte prêt | Héberger à une URL publique |
+| Politique de confidentialité liée depuis **la fiche Play Store** | Texte complet | Activer GitHub Pages, puis reporter l'URL |
 | Politique de confidentialité accessible **depuis l'application** | ❌ | Ajouter un accès dans les Paramètres |
 | Public cible et âge déclarés | ❌ | À renseigner dans la Play Console |
 | Questionnaire de classification du contenu | ❌ | À remplir |
@@ -127,10 +127,8 @@ l'analyse concurrentielle et ces notes internes.
   `include_relative`. La politique n'existe donc qu'en un seul exemplaire :
   aucune copie à maintenir en parallèle.
 
-> ⚠️ **À faire dans l'ordre.** Renseigner d'abord les quatre marqueurs
-> `[[À COMPLÉTER]]` (voir §4), **puis seulement** activer Pages. Publier une
-> politique qui affiche encore ses réservations serait plus dommageable que de
-> ne rien publier, tant vis-à-vis de Google que des familles.
+> ✅ **La politique est complète depuis le 2026-09-03** : plus aucun marqueur
+> `[[À COMPLÉTER]]` (voir §4). Le site peut être activé.
 
 **Activation** (nécessite les droits sur le dépôt, donc à faire par l'éditeur) :
 
@@ -146,15 +144,30 @@ l'analyse concurrentielle et ces notes internes.
 
 ---
 
-## 4. Éléments à compléter dans la politique avant publication
+## 4. Identité de l'éditeur — renseignée le 2026-09-03
 
-Les marqueurs `[[À COMPLÉTER : …]]` du document de politique recensent ce qui ne
-peut être renseigné que par l'éditeur :
+| Élément | Valeur retenue |
+| --- | --- |
+| Date d'entrée en vigueur | 3 septembre 2026 (version 1.0) |
+| Éditeur | Benoit Lacroix, personne physique |
+| Contact | `lacroixbenoit78@yahoo.fr` |
+| Adresse postale | Aucune — l'éditeur est un particulier sans structure professionnelle |
 
-1. **Date d'entrée en vigueur** (deux occurrences : en-tête et historique).
-2. **Nom ou raison sociale de l'éditeur** — celui qui figurera sur le compte
-   développeur Google Play ; les deux doivent concorder.
-3. **Adresse de courrier électronique de contact** — visible publiquement ;
-   mieux vaut une adresse dédiée qu'une adresse personnelle.
-4. **Adresse postale** — obligatoire si l'éditeur est une personne morale, et
-   exigée par le RGPD pour identifier le responsable de traitement.
+**Sur l'absence d'adresse postale.** Le RGPD exige l'identité et des
+*coordonnées* du responsable de traitement, sans imposer une adresse postale
+lorsqu'un moyen de contact opérationnel est fourni : l'adresse électronique
+suffit ici, l'éditeur étant un particulier.
+
+**Point à anticiper, distinct de la politique :** la création d'un compte
+développeur Google Play impose une **vérification d'identité comprenant une
+adresse**, indépendamment de ce document. Selon que le compte est classé
+« professionnel » ou non — un applicatif gratuit et non monétisé peut relever du
+second cas — cette adresse est susceptible d'être affichée publiquement sur la
+fiche du Play Store. À vérifier au moment de la création du compte, et à
+reporter ici le cas échéant pour que les deux sources concordent.
+
+**Sur l'adresse de contact.** Une adresse personnelle publiée sur une page web
+est collectée par les robots de courrier indésirable. Une adresse dédiée au
+projet resterait préférable ; le remplacement se fait en un seul endroit
+(`docs/POLITIQUE-DE-CONFIDENTIALITE.md`, section 1), le site GitHub Pages
+n'en conservant aucune copie.

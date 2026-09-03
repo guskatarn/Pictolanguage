@@ -45,16 +45,15 @@ du service worker.
 - [`docs/AUDIT.md`](docs/AUDIT.md) — état du projet, écarts avant publication
   Play Store, comparatif CAA et feuille de route.
 - [`docs/POLITIQUE-DE-CONFIDENTIALITE.md`](docs/POLITIQUE-DE-CONFIDENTIALITE.md) —
-  politique de confidentialité destinée à la publication (des marqueurs
-  `[[À COMPLÉTER]]` restent à renseigner par l'éditeur).
+  politique de confidentialité, complète et prête à publier (version 1.0 du
+  3 septembre 2026).
 - [`docs/PLAY-CONFORMITE.md`](docs/PLAY-CONFORMITE.md) — notes internes de
   préparation Play Store (formulaire Data safety, programme Families).
 
 Le dossier `docs/` sert aussi de source à un site GitHub Pages qui publie
 **uniquement** la politique de confidentialité (`docs/_config.yml` écarte les
-documents internes). Reste à activer dans Settings → Pages, branche `main`,
-dossier `/docs` — après avoir renseigné les marqueurs `[[À COMPLÉTER]]` de la
-politique.
+documents internes). La politique est complète ; il reste à activer le site dans
+Settings → Pages, branche `main`, dossier `/docs`.
 - [`NOTICE.md`](NOTICE.md) — licences des ressources tierces.
 
 ## Licence des pictogrammes

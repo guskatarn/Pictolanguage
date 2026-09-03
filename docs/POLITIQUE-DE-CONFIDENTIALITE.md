@@ -1,6 +1,6 @@
 # Politique de confidentialité — PictoLanguage
 
-**Version 1.0 — en vigueur au [[À COMPLÉTER : date de publication]]**
+**Version 1.0 — en vigueur au 3 septembre 2026**
 
 PictoLanguage est une application de communication par pictogrammes destinée aux
 enfants, notamment aux enfants avec un trouble du spectre de l'autisme.
@@ -16,12 +16,13 @@ vos informations.
 
 ## 1. Qui est responsable de cette application
 
-- **Éditeur :** [[À COMPLÉTER : nom ou raison sociale de l'éditeur]]
-- **Contact :** [[À COMPLÉTER : adresse de courrier électronique de contact]]
-- **Adresse :** [[À COMPLÉTER : adresse postale, obligatoire si l'éditeur est une entité juridique]]
+- **Éditeur :** Benoit Lacroix, personne physique
+- **Contact :** [lacroixbenoit78@yahoo.fr](mailto:lacroixbenoit78@yahoo.fr)
 
-Pour toute question relative à cette politique, écrivez à l'adresse de contact
-ci-dessus.
+L'application est éditée par un particulier, sans structure professionnelle :
+il n'existe donc pas d'adresse professionnelle à mentionner. Pour toute question
+relative à cette politique, ou pour exercer les droits décrits au point 6,
+écrivez à l'adresse de courrier électronique ci-dessus.
 
 ---
 
@@ -221,7 +222,7 @@ nature des données traitées, elle serait signalée dans l'application.
 
 **Historique :**
 
-- Version 1.0 — [[À COMPLÉTER : date de publication]] — version initiale.
+- Version 1.0 — 3 septembre 2026 — version initiale.
 
 ---
 
