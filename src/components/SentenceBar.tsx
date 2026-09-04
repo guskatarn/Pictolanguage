@@ -49,7 +49,7 @@ export default function SentenceBar({ items, onRemoveItem, onClearAll, onSpeak, 
     <div className="sentence-bar bg-white border-b-2 border-violet-100 px-3 py-2 shrink-0">
       <div className="flex items-center gap-2">
         {/* Sentence scroll area */}
-        <div className="flex-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+        <div className="min-w-0 flex-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           <div className="sentence-scroll flex gap-2 items-center min-h-[72px]">
             {isEmpty ? (
               <span className="text-gray-400 text-base italic px-2">

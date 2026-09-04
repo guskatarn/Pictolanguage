@@ -176,18 +176,22 @@ export default function App() {
     <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
       {/* Top bar */}
       <div className="flex items-center justify-between px-3 py-2 bg-violet-700 text-white shrink-0">
+        {/*
+          `min-w-0` sur le bouton et `shrink-0` sur les actions : c'est le
+          prénom qui se tronque quand la place manque, jamais les boutons qui
+          sortent de l'écran. Sur un téléphone de 360 px, bannière
+          d'installation affichée, le total dépassait la largeur disponible.
+        */}
         <button
           onClick={() => setActiveProfileId(null)}
-          className="flex items-center gap-2 bg-white/15 rounded-xl px-3 py-1.5 active:scale-95 transition-transform"
+          className="flex min-w-0 items-center gap-2 bg-white/15 rounded-xl px-3 py-1.5 active:scale-95 transition-transform"
           aria-label="Changer de profil"
         >
-          <span className="text-xl">{activeProfile.avatar}</span>
-          <span className="font-bold text-sm" style={{ maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {activeProfile.name}
-          </span>
+          <span className="text-xl shrink-0">{activeProfile.avatar}</span>
+          <span className="truncate font-bold text-sm">{activeProfile.name}</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {showInstallBanner && (
             <button
               onClick={handleInstall}
