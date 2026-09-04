@@ -5,6 +5,8 @@ import { fileToStoredImage, remoteImageToStoredImage, isStoredLocally } from '..
 import BackupTab from './BackupTab'
 import CategoryManager from './CategoryManager'
 
+const PRIVACY_POLICY_URL = 'https://guskatarn.github.io/Pictolanguage/'
+
 interface Props {
   profile: UserProfile
   categories: Category[]
@@ -409,7 +411,25 @@ export default function SettingsPanel({
           pictogrammes sont sous licence CC BY-NC-SA et l'application les
           redistribue (images embarquées dans public/pictograms/). Voir NOTICE.md.
         */}
-        <div className="shrink-0 border-t border-gray-200 bg-gray-50 px-4 py-2.5">
+        <div className="shrink-0 border-t border-gray-200 bg-gray-50 px-4 py-2.5 space-y-1.5">
+          {/*
+            Google Play Families exige que la politique de confidentialité soit
+            accessible depuis l'application elle-même, et pas seulement depuis la
+            fiche du store. L'adresse pointe pour l'instant sur GitHub Pages ;
+            elle deviendra une redirection le jour où un nom de domaine sera
+            choisi, sans quoi ce lien serait à changer dans une version publiée.
+          */}
+          <p className="text-[11px] leading-snug text-gray-500 text-center">
+            <a
+              href={PRIVACY_POLICY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="underline text-violet-600"
+            >
+              Politique de confidentialité
+            </a>{' '}
+            — aucune donnée ne quitte cet appareil.
+          </p>
           <p className="text-[11px] leading-snug text-gray-500 text-center">
             Pictogrammes :{' '}
             <a

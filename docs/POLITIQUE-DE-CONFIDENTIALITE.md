@@ -1,8 +1,8 @@
-# Politique de confidentialité — PictoLanguage
+# Politique de confidentialité — disavecmoi
 
-**Version 1.0 — en vigueur au 3 septembre 2026**
+**Version 1.1 — en vigueur au 4 septembre 2026**
 
-PictoLanguage est une application de communication par pictogrammes destinée aux
+disavecmoi est une application de communication par pictogrammes destinée aux
 enfants, notamment aux enfants avec un trouble du spectre de l'autisme.
 
 Elle a été conçue selon un principe simple : **les données de votre enfant
@@ -222,6 +222,9 @@ nature des données traitées, elle serait signalée dans l'application.
 
 **Historique :**
 
+- Version 1.1 — 4 septembre 2026 — l'application, auparavant nommée
+  « PictoLanguage », est renommée « disavecmoi ». Aucun changement quant aux
+  données traitées.
 - Version 1.0 — 3 septembre 2026 — version initiale.
 
 ---

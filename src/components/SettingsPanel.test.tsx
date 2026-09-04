@@ -80,3 +80,17 @@ describe('SettingsPanel — catégorie de destination d’un pictogramme ajouté
     expect(DEFAULT_CATEGORIES.map((c) => c.id)).toContain(categorieUtilisee)
   })
 })
+
+describe('SettingsPanel — accès à la politique de confidentialité', () => {
+  // Google Play Families refuse une application pour enfants dont la politique
+  // n'est joignable que depuis la fiche du store. Le lien doit rester présent
+  // et pointer sur une adresse publique.
+  it('expose un lien vers la politique, ouvert hors de l’application', () => {
+    setup(DEFAULT_CATEGORIES)
+    const lien = screen.getByRole('link', { name: /Politique de confidentialité/i })
+
+    expect(lien).toHaveAttribute('href', expect.stringMatching(/^https:\/\//))
+    expect(lien).toHaveAttribute('target', '_blank')
+    expect(lien).toHaveAttribute('rel', expect.stringContaining('noreferrer'))
+  })
+})
