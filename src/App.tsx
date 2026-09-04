@@ -233,51 +233,57 @@ export default function App() {
         <CoreVocabularyBar words={CORE_VOCABULARY} onClick={handlePictogramClick} />
       )}
 
-      {/* Category tabs */}
-      <CategoryTabs
-        categories={tabs}
-        activeId={activeCategory}
-        onSelect={(id) => {
-          setActiveCategory(id)
-          gridRef.current?.scrollTo({ top: 0 })
-        }}
-      />
+      {/*
+        Onglets + grille forment un bloc à part : en portrait ils restent
+        empilés, en paysage `.app-body` les met côte à côte et les onglets
+        deviennent une colonne à gauche. Voir index.css.
+      */}
+      <div className="app-body">
+        <CategoryTabs
+          categories={tabs}
+          activeId={activeCategory}
+          onSelect={(id) => {
+            setActiveCategory(id)
+            gridRef.current?.scrollTo({ top: 0 })
+          }}
+        />
 
-      {/* Pictogram grid */}
-      <div className="flex-1 overflow-y-auto" ref={gridRef}>
-        <div className={`picto-grid-${activeProfile.settings.pictogramSize}`}>
-          {pictograms.map((picto) => (
-            <PictogramCard
-              key={picto.key}
-              picto={picto}
-              size={activeProfile.settings.pictogramSize}
-              bgColor={activeCategoryData?.bgColor ?? '#F3F4F6'}
-              borderColor={activeCategoryData?.tabColor ?? '#6B7280'}
-              onClick={handlePictogramClick}
-              onToggleFavorite={handleToggleFavorite}
-            />
-          ))}
-          {pictograms.length === 0 && (
-            <div
-              className="flex flex-col items-center justify-center py-16 text-gray-400"
-              style={{ gridColumn: '1 / -1' }}
-            >
-              <span className="text-5xl mb-3">{isFavoritesTab ? '⭐' : '🏞️'}</span>
-              {isFavoritesTab ? (
-                <>
-                  <p className="text-base">Aucun favori pour le moment</p>
-                  <p className="text-sm mt-1">
-                    Touchez l'étoile d'un pictogramme pour l'ajouter ici
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-base">Aucun pictogramme dans cette catégorie</p>
-                  <p className="text-sm mt-1">Ajoutes-en dans les paramètres</p>
-                </>
-              )}
-            </div>
-          )}
+        {/* Pictogram grid */}
+        <div className="flex-1 min-w-0 overflow-y-auto" ref={gridRef}>
+          <div className={`picto-grid-${activeProfile.settings.pictogramSize}`}>
+            {pictograms.map((picto) => (
+              <PictogramCard
+                key={picto.key}
+                picto={picto}
+                size={activeProfile.settings.pictogramSize}
+                bgColor={activeCategoryData?.bgColor ?? '#F3F4F6'}
+                borderColor={activeCategoryData?.tabColor ?? '#6B7280'}
+                onClick={handlePictogramClick}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            ))}
+            {pictograms.length === 0 && (
+              <div
+                className="flex flex-col items-center justify-center py-16 text-gray-400"
+                style={{ gridColumn: '1 / -1' }}
+              >
+                <span className="text-5xl mb-3">{isFavoritesTab ? '⭐' : '🏞️'}</span>
+                {isFavoritesTab ? (
+                  <>
+                    <p className="text-base">Aucun favori pour le moment</p>
+                    <p className="text-sm mt-1">
+                      Touchez l'étoile d'un pictogramme pour l'ajouter ici
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-base">Aucun pictogramme dans cette catégorie</p>
+                    <p className="text-sm mt-1">Ajoutes-en dans les paramètres</p>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

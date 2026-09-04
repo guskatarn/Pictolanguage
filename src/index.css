@@ -42,6 +42,94 @@ button {
   padding: 14px;
 }
 
+/* ------------------------------------------------------------------------
+   Mise en page paysage et grands écrans.
+
+   En portrait tout est empilé : barre supérieure, phrase en cours, mots
+   rapides, onglets de catégories, puis la grille. Cet empilement coûte de
+   la hauteur, et la hauteur est précisément ce qui manque en paysage —
+   l'orientation d'usage courante d'une tablette posée sur une table.
+
+   En paysage, les onglets passent donc en colonne à gauche. La grille
+   récupère la hauteur, et les catégories deviennent toutes visibles d'un
+   coup, sans défilement horizontal : leur position cesse de bouger, ce qui
+   sert aussi la planification motrice de l'enfant.
+
+   Le seuil combine orientation et largeur minimale. Un téléphone couché
+   (844 x 390) en profite, car c'est là que l'empilement est le plus étouffant.
+   Une tablette debout (768 x 1024) garde la rangée horizontale, plus
+   naturelle quand la hauteur ne manque pas.
+   ------------------------------------------------------------------------ */
+
+.app-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  /* Sans cela, un enfant flex refuse de rétrécir sous son contenu et la
+     grille déborde au lieu de défiler. */
+  min-height: 0;
+}
+
+@media (orientation: landscape) and (min-width: 700px) {
+  .app-body {
+    flex-direction: row;
+  }
+
+  .category-tabs {
+    width: 9.5rem;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-right: 1px solid #e5e7eb;
+    background: #fff;
+  }
+
+  .category-tabs > button {
+    width: 100%;
+    text-align: left;
+    /* L'agrandissement de l'onglet actif est posé en style inline par le
+       composant ; dans une colonne étroite il déborderait sur les bords, où
+       le débordement horizontal est masqué. La couleur et l'ombre suffisent
+       à désigner l'onglet actif. */
+    transform: none !important;
+  }
+}
+
+/* Paysage sur écran bas (téléphone couché) : les barres fixes laisseraient
+   moins de 200 px à la grille. On leur reprend le superflu — jamais la
+   taille des cibles tactiles, seulement les marges. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .sentence-bar {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .sentence-bar .sentence-scroll {
+    min-height: 56px;
+  }
+
+  .core-bar {
+    padding-top: 0.125rem;
+    padding-bottom: 0.125rem;
+  }
+
+  /* Les vignettes rétrécissent, pas les boutons : la cible tactile reste
+     celle du bouton entier, qui garde sa hauteur de ligne et son libellé. */
+  .core-bar .core-word-img {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .sentence-bar .sentence-item {
+    width: 56px;
+  }
+
+  .sentence-bar .sentence-item-img {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
 .picto-card {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;

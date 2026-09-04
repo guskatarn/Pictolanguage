@@ -17,7 +17,9 @@ export default defineConfig({
         theme_color: '#7C3AED',
         background_color: '#ffffff',
         display: 'standalone',
-        orientation: 'portrait',
+        // Verrouiller le portrait interdisait la tablette posée en paysage,
+        // qui est la configuration d'usage courante en CAA.
+        orientation: 'any',
         lang: 'fr',
         start_url: '/',
         icons: [

@@ -18,13 +18,12 @@ function MiniPicto({ item, onRemove }: { item: SentenceItem; onRemove: () => voi
 
   return (
     <button
-      className="sentence-item flex flex-col items-center rounded-xl border-2 border-violet-300 bg-violet-50 p-1.5 shrink-0"
-      style={{ minWidth: 72, maxWidth: 72 }}
+      className="sentence-item flex w-[72px] shrink-0 flex-col items-center rounded-xl border-2 border-violet-300 bg-violet-50 p-1.5"
       onClick={onRemove}
       aria-label={`Retirer ${item.word}`}
       title="Cliquer pour retirer"
     >
-      <div className="w-12 h-12 flex items-center justify-center bg-white rounded-lg overflow-hidden">
+      <div className="sentence-item-img w-12 h-12 flex items-center justify-center bg-white rounded-lg overflow-hidden">
         {src && !failed ? (
           <img
             src={src}
@@ -47,11 +46,11 @@ export default function SentenceBar({ items, onRemoveItem, onClearAll, onSpeak, 
   const isEmpty = items.length === 0
 
   return (
-    <div className="bg-white border-b-2 border-violet-100 px-3 py-2 shrink-0">
+    <div className="sentence-bar bg-white border-b-2 border-violet-100 px-3 py-2 shrink-0">
       <div className="flex items-center gap-2">
         {/* Sentence scroll area */}
         <div className="flex-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-          <div className="flex gap-2 items-center min-h-[72px]">
+          <div className="sentence-scroll flex gap-2 items-center min-h-[72px]">
             {isEmpty ? (
               <span className="text-gray-400 text-base italic px-2">
                 Sélectionne des pictogrammes...

@@ -8,7 +8,12 @@ interface Props {
 
 export default function CategoryTabs({ categories, activeId, onSelect }: Props) {
   return (
-    <div className="flex gap-1.5 overflow-x-auto px-3 py-2 shrink-0" style={{ scrollbarWidth: 'none' }}>
+    // `category-tabs` porte la bascule paysage : rangée horizontale en
+    // portrait, colonne à gauche en paysage. Voir index.css.
+    <div
+      className="category-tabs flex gap-1.5 overflow-x-auto px-3 py-2 shrink-0"
+      style={{ scrollbarWidth: 'none' }}
+    >
       {categories.map((cat) => {
         const isActive = cat.id === activeId
         return (

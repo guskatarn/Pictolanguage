@@ -13,8 +13,7 @@ function CoreWordButton({ entry, onClick }: { entry: PictogramEntry; onClick: Pr
 
   return (
     <button
-      className="picto-card shrink-0 flex flex-col items-center rounded-xl bg-slate-700 border-2 border-slate-600 px-1.5 py-1"
-      style={{ minWidth: 60 }}
+      className="picto-card min-w-[60px] shrink-0 flex flex-col items-center rounded-xl bg-slate-700 border-2 border-slate-600 px-1.5 py-1"
       onClick={() =>
         onClick({
           key: `core-${entry.id}`,
@@ -26,7 +25,7 @@ function CoreWordButton({ entry, onClick }: { entry: PictogramEntry; onClick: Pr
       }
       aria-label={entry.word}
     >
-      <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg overflow-hidden">
+      <div className="core-word-img w-10 h-10 flex items-center justify-center bg-white rounded-lg overflow-hidden">
         {failed || !src ? (
           <span className="text-lg">🖼️</span>
         ) : (
@@ -55,7 +54,7 @@ export default function CoreVocabularyBar({ words, onClick }: Props) {
   if (words.length === 0) return null
 
   return (
-    <div className="bg-slate-800 px-2 py-1.5 shrink-0" role="group" aria-label="Mots rapides">
+    <div className="core-bar bg-slate-800 px-2 py-1.5 shrink-0" role="group" aria-label="Mots rapides">
       <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
         {words.map((entry) => (
           <CoreWordButton key={entry.id} entry={entry} onClick={onClick} />
