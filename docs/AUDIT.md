@@ -1,6 +1,102 @@
 # Audit PictoLanguage — état actuel et écarts avant publication Play Store
 
-*Réalisé le 2026-09-02 par Claude, à partir du code source lu sur F:\pictoLanguage (PC "arzac" de Benoît). Mis à jour au fil de l'avancement.*
+*Réalisé le 2026-09-02 par Claude, à partir du code source lu sur F:\pictoLanguage (PC "arzac" de Benoît). Mis à jour au fil de l'avancement, et repris intégralement le 2026-09-09 — voir §0.*
+
+## 0. Reprise d'audit du 2026-09-09
+
+*Relecture complète du code tel qu'il est aujourd'hui (4 286 lignes de TS/TSX), après la clôture des étapes 2 à 6. Objet : vérifier que les constats de septembre tiennent toujours, et chercher ce qu'un audit mené avant les lots « favoris », « paysage » et « fiche store » ne pouvait pas voir. Aucune modification de code — les constats sont classés et chiffrés pour être traités ensuite.*
+
+### 0.A — Ce que la relecture confirme comme clos
+
+Les lots livrés depuis le 2026-09-02 sont vérifiés dans le code, et pas seulement dans le journal : images embarquées et servies via `import.meta.env.BASE_URL` (`defaultPictograms.ts`), écriture avant affichage et sonde de stockage (`storage.ts`, `useProfiles.ts`), favoris traités comme une vue distincte des catégories de rangement (`usePictograms.ts`), bascule paysage purement CSS (`index.css`), voix locale privilégiée (`useSpeech.ts`), attribution ARASAAC et politique de confidentialité en pied des Paramètres (`SettingsPanel.tsx`). 95 tests, `eslint` et `vite build` passent. **§2.H est désormais close** : visuels réels et fiche rédigée dans `store/`.
+
+### 0.B — Nouveaux constats
+
+Numérotés N1 à N12, du plus au moins urgent. Les six premiers touchent directement l'enfant utilisateur ; les suivants sont des dettes qui coûteront cher au moment de l'empaquetage.
+
+**N1 — Le libellé des pictogrammes échoue au contraste minimal, et la couleur prévue pour lui n'est utilisée nulle part.** *(accessibilité — sérieux, correction quasi gratuite)*
+
+`PictogramCard.tsx:64` écrit le mot avec `borderColor`, c'est-à-dire le `tabColor` de la catégorie : une couleur vive choisie pour un fond d'onglet, posée sur le fond très clair de la carte. Ratios mesurés contre `bgColor` :
+
+| Catégorie | Couleur du texte utilisée | Fond | Ratio | Champ `color`, jamais utilisé | Ratio |
+| --- | --- | --- | --- | --- | --- |
+| Favoris | `#EAB308` | `#FEF9C3` | **1,79** | `#78350F` | 8,45 |
+| Besoins | `#F59E0B` | `#FEF3C7` | **1,93** | `#92400E` | 6,37 |
+| Aliments | `#22C55E` | `#DCFCE7` | **2,07** | `#14532D` | 8,30 |
+| Actions | `#F97316` | `#FFEDD5` | **2,45** | `#7C2D12` | 8,18 |
+| Personnes | `#EC4899` | `#FCE7F3` | **3,00** | `#831843` | 8,21 |
+| Émotions | `#3B82F6` | `#DBEAFE` | **3,01** | `#1E40AF` | 7,15 |
+| Lieux | `#8B5CF6` | `#EDE9FE` | **3,57** | `#4C1D95` | 9,23 |
+| Objets | `#6B7280` | `#F3F4F6` | **4,39** | `#1F2937` | 13,34 |
+
+Le minimum WCAG AA est de 4,5:1 pour du texte de cette taille (12 à 16 px) : **les huit onglets échouent**, quatre très largement. Or `Category.color` — le ton foncé de chaque famille, 6,4 à 13,3:1, manifestement défini pour cela — **n'est lu par aucune ligne de code** (vérifié par recherche sur tout `src/`) : c'est un champ mort. La correction consiste à passer `cat.color` au libellé, sans rien inventer ni redessiner. Point d'autant plus sensible que le public inclut des enfants ayant une déficience visuelle associée, et que le mot écrit est ce qui permet à l'adulte de lire la grille par-dessus l'épaule de l'enfant.
+
+**N2 — La couleur d'un pictogramme dépend de l'onglet où il est affiché, pas du pictogramme.** *(cohérence CAA — sérieux)*
+
+`App.tsx:249-250` passe à chaque carte le `bgColor` et le `tabColor` de la **catégorie active**. Conséquence : dans l'onglet Favoris, tous les pictogrammes deviennent jaunes. « manger » est vert dans Aliments et jaune dans Favoris ; « content » est bleu ici, jaune là. Le codage couleur thématique, qui est le repère offert à la place de la clé de Fitzgerald (§4), est donc annulé précisément dans l'onglet placé en première position et destiné à l'usage quotidien. C'est aussi ce qui bloquerait une évolution vers un codage grammatical : la couleur doit devenir une propriété portée par le pictogramme (`PictogramItem`), issue de sa propre catégorie, et non un paramètre de la vue.
+
+**N3 — La phrase est effacée dès qu'elle a été prononcée.** *(usage CAA — sérieux, correction très bon marché)*
+
+`App.tsx:118` vide `sentence` juste après avoir parlé. Or la situation la plus banale en CAA est qu'on redemande à l'enfant de répéter : l'adulte n'a pas entendu, n'a pas compris, ou un tiers arrive. L'enfant doit alors reconstruire toute sa phrase, pictogramme par pictogramme. Les outils de référence conservent le message affiché jusqu'à un effacement explicite — et l'application possède déjà les deux boutons pour cela (`← Effacer`, `✕ Tout`). L'historique ne compense pas : il est derrière un bouton, dans une surcouche, et rejoue des mots sans réafficher la phrase. Conserver la phrase après lecture tient en une ligne ; c'est probablement le meilleur rapport valeur/effort de tout ce document.
+
+**N4 — La position des pictogrammes bouge encore, pour trois raisons distinctes.** *(planification motrice — déjà en §4, ici précisé)*
+
+Le constat de septembre ne visait que le nombre de colonnes. La relecture en isole trois causes, à traiter séparément :
+
+1. **Largeur** — `grid-template-columns: repeat(auto-fill, minmax(…, 1fr))` (`index.css:24-42`) fait dépendre le nombre de colonnes de la place disponible. Une rotation de la tablette redistribue toute la grille.
+2. **Réglage de taille** — passer de M à L change le `minmax`, donc le nombre de colonnes : le réglage d'affichage détruit les repères moteurs déjà acquis.
+3. **Masquage** — `getPictogramsForCategory` (`usePictograms.ts:46`) *filtre* les pictogrammes masqués, si bien que masquer un mot décale tous les suivants. La fonctionnalité livrée pour alléger la grille déplace donc ce qu'elle laisse. La formule « sans réorganiser les pictogrammes restants » de §1 est vraie pour l'ordre, pas pour les positions à l'écran.
+
+Piste cohérente avec le reste : un nombre de colonnes **fixe par réglage de taille** (par exemple 4 / 3 / 2 en portrait, 6 / 5 / 4 en paysage) plutôt que déduit de la largeur, et une case laissée vide à l'emplacement d'un pictogramme masqué. À trancher avec l'idée d'une grille à emplacements fixes, qui est le modèle des outils professionnels.
+
+**N5 — Plusieurs cibles tactiles sont sous le seuil recommandé.** *(accessibilité motrice)*
+
+Mesures dans le code : l'étoile de favori fait 36 px (`h-9 w-9`, `PictogramCard.tsx:71`), les onglets de catégorie environ 36 px de haut (`px-4 py-2` sur du `text-sm`), et les boutons `← Effacer` / `✕ Tout` environ 28 px (`py-1.5` sur du `text-xs`, `SentenceBar.tsx:88-100`). Les recommandations Android (48 dp) comme WCAG 2.5.5 (44 px) ne sont donc pas tenues, pour un public dont une partie a des troubles moteurs associés. Les grandes cartes de pictogrammes, elles, sont largement au-dessus : l'écart ne concerne que les commandes périphériques.
+
+**N6 — L'étoile reste à portée de l'enfant, et le verrou parental reste absent.** *(réserve ouverte depuis le 2026-09-03, confirmée)*
+
+Rien n'a changé : l'étoile est un bouton frère de la carte, toujours actif, et les Paramètres s'ouvrent en un appui (`App.tsx:196`). Un enfant qui vise son mot peut poser un favori à la place, ou entrer dans les réglages et masquer des pictogrammes. Le verrouillage par code parental (§4) résout les deux d'un coup et lèverait la réserve ; c'est le premier candidat du lot CAA.
+
+**N7 — Des textes visibles par le parent portent encore l'ancien nom.** *(finition du renommage)*
+
+`storage.ts:155` et `:160` produisent « Fichier illisible : ce n'est pas une sauvegarde PictoLanguage. » et « Ce fichier ne vient pas de PictoLanguage. » — deux messages qu'un parent voit en restaurant une sauvegarde. Le fichier exporté s'appelle lui aussi `pictolanguage-sauvegarde-AAAA-MM-JJ.json` (`storage.ts:175`). Contrairement au marqueur `app: 'pictolanguage'` et aux clés `pictoapp-*`, **ces trois éléments ne portent aucun risque de données** : les messages sont de l'affichage, et le nom de fichier n'est jamais relu à l'import (seul le champ `app` est vérifié). Ils peuvent donc être renommés immédiatement. Le préfixe console d'`ErrorBoundary` est du même ordre, en plus discret.
+
+**N8 — `Category.pictogramIds` est un doublon jamais lu.** *(dette de conception)*
+
+Le rangement réel est porté par `DEFAULT_PICTOGRAMS[].categoryId` (`defaultPictograms.ts`), que `getPictogramsForCategory` interroge. Les listes `pictogramIds` de `defaultCategories.ts` ne sont lues par aucun code — vérifié — mais restent maintenues à la main : deux sources de vérité pour un même rangement, dont l'une devient fausse dès qu'on ajoute un mot sans y penser. À supprimer du type et des données.
+
+**N9 — Une recherche ARASAAC hors ligne est indiscernable d'une recherche sans résultat.** *(diagnostic)*
+
+`searchArasaac` (`usePictograms.ts:130`) renvoie `[]` sur toute exception, réseau compris. Le parent qui cherche un mot dans un train lit « aucun résultat » et conclut que le pictogramme n'existe pas. Distinguer l'échec réseau du résultat vide, et le dire.
+
+**N10 — Aucune stratégie de version, ce qui bloquera l'empaquetage.** *(prérequis de l'étape 1)*
+
+`package.json` est resté en `version: 0.0.0` et rien ne relie ce numéro à un futur build Android. Or Play exige un `versionCode` entier strictement croissant à chaque téléversement, et un `versionName` affiché aux parents ; une erreur ici ne se corrige pas, un `versionCode` déjà consommé étant perdu définitivement. À décider **avant** le premier `.aab` : schéma de numérotation, source unique du numéro, et tenue d'un journal des versions.
+
+**N11 — Si l'application est un jour hébergée, deux chemins absolus la casseront.** *(§2.B, non bloquant pour Capacitor)*
+
+`index.html:5` référence `/icon-192.png` et le manifeste déclare `start_url: '/'`. Sur GitHub Pages, le site vit sous `/Pictolanguage/` : l'icône et le point d'entrée pointeraient à la racine du domaine, donc dans le vide. Les images de pictogrammes, elles, sont déjà correctes (`import.meta.env.BASE_URL`). À corriger le jour où l'on héberge l'application elle-même — aujourd'hui Pages ne publie que la politique de confidentialité.
+
+**N12 — Cinq points à vérifier sur appareil dès le premier build Capacitor.** *(étape 1)*
+
+Ils ne se voient pas dans un navigateur de bureau, et chacun peut invalider une promesse déjà écrite dans la politique de confidentialité ou dans la fiche store :
+
+1. **La synthèse vocale.** `selectVoice()` se fonde sur `voice.localService`. Dans une WebView Android, la liste des voix est souvent vide au démarrage et cet indicateur n'a pas la même signification que sur un poste de bureau. Toute la promesse « le texte ne sort pas de l'appareil » repose sur ce test : à faire en premier, réseau coupé.
+2. **Les liens `target="_blank"`** de la politique et d'ARASAAC : ils doivent ouvrir le navigateur du système. S'ils s'ouvrent dans la WebView, l'enfant s'y retrouve enfermé sans barre d'adresse ni retour — et Families exige que la politique reste atteignable.
+3. **Le sélecteur de photo** (`<input type="file" accept="image/*">`) : il exige le gestionnaire de choix de fichier de la WebView et, à partir d'Android 13, la permission d'accès aux médias.
+4. **Le service worker devient inutile** (tout est local) et peut servir des fichiers périmés après une mise à jour de l'application. Envisager de désactiver la PWA dans le build Capacitor plutôt que de superposer deux caches.
+5. **`localStorage` dans une WebView** peut être vidé par le système (nettoyage de cache, pression sur le stockage). L'export reste donc la seule sauvegarde réelle, ce que la fiche et l'application doivent continuer de dire clairement.
+
+### 0.C — Feuille de route mise à jour
+
+L'ordre change sur un point décidé par l'éditeur le 2026-09-09 : **l'étape 7 (compte développeur, classification, test fermé) est repoussée en toute fin de projet.** Elle n'apporte rien tant qu'il n'existe pas de binaire à téléverser, et elle engage une vérification d'identité qu'il est inutile d'ouvrir trop tôt.
+
+1. **Lot « corrections de revue »** — N1, N2, N3, N7, N8, puis N5. Peu de code, effet direct sur l'enfant, et à faire **avant** l'empaquetage : ces changements modifient l'interface, donc les captures de la fiche store devront être régénérées (`npm run assets`).
+2. **Étape 1 — empaquetage Capacitor**, en traitant N10 (versions) comme prérequis et N12 comme protocole de vérification sur appareil. C'est le seul verrou qui reste entre l'application et une publication possible.
+3. **Lot CAA** — verrou parental (N6, qui lève aussi la réserve de l'étoile), puis positions stables (N4), puis recherche de mot pendant la composition (§4). Ce sont les trois écarts qui séparent encore l'application des outils de référence.
+4. **Étape 7 — Play Console**, en dernier : compte développeur, questionnaire de classification, audience, test fermé, publication.
+
+N9 et N11 se traitent au passage, dans le lot qui touche au fichier concerné.
 
 ## 1. Ce qui existe déjà
 
@@ -8,9 +104,9 @@ Application web (PWA) "disavecmoi" (anciennement "PictoApp") — React 18 + Type
 
 Fonctionnalités présentes :
 - Gestion multi-profils (jusqu'à 6), stockage local.
-- Grille de pictogrammes organisée en 7 catégories (besoins, émotions, aliments, actions, lieux, personnes, objets), 35 pictogrammes par défaut issus d'ARASAAC (chargés en ligne via `static.arasaac.org`).
+- Grille de pictogrammes organisée en 7 catégories (besoins, émotions, aliments, actions, lieux, personnes, objets), 35 pictogrammes par défaut issus d'ARASAAC. ~~Chargés en ligne via `static.arasaac.org`.~~ ✅ **Depuis le 2026-09-03**, ces 35 pictogrammes et les 10 mots de la barre rapide (42 images distinctes, 3 étant communes) sont **embarqués dans le dépôt** et précachés : le réseau n'est plus sollicité que pour la recherche ARASAAC dans les réglages.
 - Barre de phrase : on tape des pictogrammes pour composer une phrase, puis synthèse vocale française (Web Speech API).
-- Historique des phrases prononcées, avec rejeu.
+- Historique des 20 dernières phrases prononcées, avec rejeu. **La phrase en cours est en revanche effacée dès qu'elle est lue** — voir N3.
 - Panneau réglages : taille des pictogrammes (S/M/L), vitesse/volume de la voix, réordonnancement des catégories, ajout de pictogrammes personnalisés (recherche ARASAAC ou upload d'image), suppression.
 - Manifest PWA + service worker (mise en cache offline des images ARASAAC via Workbox), bandeau d'installation ("beforeinstallprompt").
 - **[Ajouté le 2026-09-02]** Barre de vocabulaire "core" toujours visible (10 mots fréquents : moi, vouloir, aide, encore, stop, oui, non, aimer, donner, fini), activable/désactivable dans Réglages → Affichage. Voir `src/data/coreVocabulary.ts` et `src/components/CoreVocabularyBar.tsx`.
@@ -97,10 +193,10 @@ ARASAAC est distribué sous licence **CC BY-NC-SA** (usage non commercial, attri
 
 ### H. Finitions produit et store listing
 
-- Les icônes actuelles (`icon-192.png`, `icon-512.png`) sont générées par un script maison (`generate-icons.mjs`) : un simple cercle violet uni, pas une identité visuelle travaillée. Il manque aussi un favicon réel (référencé dans la config PWA mais absent du dossier `public`).
-- Aucun visuel de fiche store : icône haute résolution, image "feature graphic" (1024×500), captures d'écran (téléphone + tablette obligatoires si l'app cible les deux), description longue/courte.
-- Compte développeur Google Play à créer (frais unique), questionnaire de classification de contenu, ciblage d'audience, liste des pays de diffusion.
-- Pas de stratégie de version (numéro de version, changelog) ni de signature d'app configurée.
+- ~~Les icônes actuelles (`icon-192.png`, `icon-512.png`) sont générées par un script maison (`generate-icons.mjs`) : un simple cercle violet uni, pas une identité visuelle travaillée.~~ ✅ **Refaites le 2026-09-04** par `scripts/store-assets.mjs` (`npm run assets`), qui rend des gabarits SVG en Chrome headless — donc rien de dessiné à la main, rien qui se périme en silence quand l'interface change.
+- ~~Aucun visuel de fiche store : icône haute résolution, image "feature graphic" (1024×500), captures d'écran (téléphone + tablette obligatoires si l'app cible les deux), description longue/courte.~~ ✅ **Terminé le 2026-09-05.** `store/` contient l'icône 512, le feature graphic 1024×500 et 12 captures (4 scènes × téléphone / tablette 7″ / tablette 10″), toutes produites depuis l'application réelle ; les textes sont dans `store/FICHE-STORE.md`. Deux réserves y sont consignées, dont la largeur plancher de 500 px CSS imposée par Chrome headless, à contrôler sur un appareil réel.
+- Compte développeur Google Play à créer (frais unique), questionnaire de classification de contenu, ciblage d'audience, liste des pays de diffusion. **Repoussé en fin de projet à la demande de l'éditeur le 2026-09-09** (§0.C).
+- Pas de stratégie de version (numéro de version, changelog) ni de signature d'app configurée. **Toujours ouvert, et devenu prérequis de l'empaquetage — voir N10.**
 
 > **[Précisé le 2026-09-03]** Le `favicon.ico` manquant n'a **aucun impact à l'exécution** : il n'apparaît que dans `includeAssets` du plugin PWA (qui ignore silencieusement les fichiers absents), tandis que `index.html` référence bien `/icon-192.png`, présent. C'est une ligne de configuration à nettoyer, pas un écart bloquant pour le store. ✅ **Nettoyée le 2026-09-03** (`favicon.ico` retiré d'`includeAssets`).
 
@@ -111,8 +207,8 @@ ARASAAC est distribué sous licence **CC BY-NC-SA** (usage non commercial, attri
 3. ~~Finir la fonctionnalité "favoris" à moitié câblée, ou la retirer proprement.~~ ✅ **Terminé le 2026-09-03** — finie, avec le masquage des pictogrammes par la même occasion (§2.A).
 4. ~~Rédiger la politique de confidentialité, remplir le formulaire Data safety, vérifier l'attribution ARASAAC et la compatibilité de licence avec le modèle de diffusion choisi (gratuit sans pub obligatoire tant qu'ARASAAC est utilisé).~~ ✅ **Terminé le 2026-09-04.** Politique rédigée le 2026-09-03 (`docs/POLITIQUE-DE-CONFIDENTIALITE.md`), publiée sur `https://guskatarn.github.io/Pictolanguage/` et, depuis le 2026-09-04, accessible **depuis l'application** — Families l'exige en plus du lien de la fiche store. Réponses Data safety justifiées dans `docs/PLAY-CONFORMITE.md`. La licence CC BY-NC-SA impose la gratuité totale : ni app payante, ni achat intégré, ni publicité.
 5. ~~Adapter la mise en page pour tablette/PC (grille, orientation) et tester sur plusieurs formats d'écran.~~ ✅ **Terminé le 2026-09-04** (§2.C). « PC » est traité au sens (1) : la PWA s'affiche correctement en large écran. Un empaquetage Windows distinct reste hors sujet.
-6. Travailler l'identité visuelle (vraies icônes, feature graphic, captures d'écran) et rédiger la fiche store.
-7. Créer le compte développeur Google Play, remplir le questionnaire de classification, cibler l'audience "enfants"/"familles", publier en test fermé avant la diffusion publique.
+6. ~~Travailler l'identité visuelle (vraies icônes, feature graphic, captures d'écran) et rédiger la fiche store.~~ ✅ **Terminé le 2026-09-05** (§2.H). Visuels dans `store/`, textes dans `store/FICHE-STORE.md`. À régénérer après le lot de corrections de §0.C, qui modifie l'interface photographiée.
+7. Créer le compte développeur Google Play, remplir le questionnaire de classification, cibler l'audience "enfants"/"familles", publier en test fermé avant la diffusion publique. **Déplacé en toute fin de projet le 2026-09-09** : sans binaire à téléverser, l'étape n'apporte rien, et elle engage une vérification d'identité qu'il est inutile d'ouvrir trop tôt. L'ordre courant est celui de §0.C.
 
 ### Sources consultées (audit technique/store)
 
@@ -153,6 +249,7 @@ Comparaison avec les applications de référence en communication alternative et
 - [Visual Voice — application CAA francophone](https://visualvoice.app/)
 
 ## 5. Journal d'implémentation
+- **2026-09-09** — **Reprise complète de l'audit** (§0), sans modification de code. Les cinq lots livrés depuis le 2026-09-02 sont revérifiés dans le code ; §2.H est close. Douze constats nouveaux (N1 à N12), dont trois qui touchent l'enfant à chaque usage : le libellé des pictogrammes échoue au contraste WCAG dans les huit onglets (1,79 à 4,39:1) **alors que `Category.color`, la couleur foncée prévue pour cela, n'est lue par aucune ligne de code** ; la couleur d'une carte vient de l'onglet affiché et non du pictogramme, si bien que l'onglet Favoris repeint tout en jaune et annule le codage thématique ; et la phrase est effacée dès qu'elle est prononcée, alors que faire répéter un enfant est la situation la plus banale en CAA. Le reste tient de la dette : positions de grille encore mobiles pour trois raisons distinctes, cibles tactiles sous 48 dp, textes visibles portant encore « PictoLanguage », `Category.pictogramIds` jamais lu, recherche hors ligne muette, absence de stratégie de `versionCode` (prérequis de l'empaquetage) et cinq points à vérifier sur appareil dès le premier build Capacitor. **Méthode :** les ratios de contraste ont été calculés sur les couleurs réelles du code plutôt qu'estimés à l'œil — c'est ce calcul qui a révélé le champ mort, qu'une lecture visuelle aurait manqué. Feuille de route réordonnée en §0.C, l'étape 7 passant en fin de projet sur décision de l'éditeur.
 - **2026-09-03** — « stop » remplacé (38251 → 8289). L'ancien pictogramme, un carré noir dans un cercle, était visuellement net mais sémantiquement vide pour un enfant : rien n'y évoque l'arrêt sans apprentissage préalable. **Méthode :** les candidats ont été comparés non pas en grand, mais **simulés dans la barre de mots rapides à leur taille réelle d'affichage (40 px)** — ce qui a renversé le classement. Les pictogrammes de geste (7195/7196, personnage paume levée), les plus convaincants isolément et les plus conformes aux usages CAA, se révèlent illisibles à cette taille : la silhouette est minuscule et la main indistincte. Le panneau octogonal rouge reste au contraire immédiatement identifiable, et sa forme comme sa couleur portent le sens sans lecture. **Tension assumée avec le principe « aucun texte » posé plus haut :** le mot « STOP » figure sur l'image, mais il y est redondant — contrairement à « COLORÍN COLORADO », où le texte *était* le seul contenu. **Réserve :** la barre compte désormais trois symboles rouges voisins (encore, stop, non) ; leurs formes restent nettement distinctes, mais le point mérite d'être revu si un test utilisateur révélait une confusion.
 - **2026-09-03** — **Deux pictogrammes inadaptés remplacés, signalés à l'usage.** « fini » pointait sur l'id 8081, dont ARASAAC indique bien le mot-clé « c'est fini » : la métadonnée était donc exacte, mais **l'image est le texte espagnol « COLORÍN COLORADO »** (formule de fin de conte), illisible et dénué de sens pour un enfant francophone non-lecteur. Remplacé par 28429, qui représente le **geste** « fini », signe standard en CAA. Revue systématique des 41 autres par planche-contact rendue en navigateur : un second défaut du même ordre découvert — « salle de bain » (6930) affichait une **porte de toilettes publiques féminines**, ce qui n'est pas une salle de bain, introduit une notion de genre et fait doublon avec « toilettes » ; remplacé par 33954 (baignoire, lavabo, miroir). `scripts/fetch-pictograms.mjs` supprime désormais les images qui ne correspondent plus à aucun mot : sans cela, un pictogramme remplacé restait précaché par le service worker et pesait deux fois. **Leçon :** les mots-clés ARASAAC ne suffisent pas à valider un pictogramme, seul l'examen de l'image le permet — l'app étant destinée à des enfants non-lecteurs, toute image contenant du texte est disqualifiée par principe.
 - **2026-09-03** — **Correction d'une régression signalée à l'usage** : un pictogramme ajouté depuis la recherche ARASAAC n'apparaissait dans aucune catégorie. Cause — le lot favoris faisait renvoyer par `usePictograms` une liste `categories` commençant par `FAVORITES_CATEGORY` ; `SettingsPanel` initialisant la catégorie de destination avec `categories[0]`, tout ajout était rangé dans « favoris », qui n'est pas une catégorie de rangement mais une vue : le pictogramme était bien enregistré, mais invisible dans les grilles comme dans les favoris, où il n'était pas inscrit. Correction à trois niveaux : `usePictograms` distingue désormais `categories` (rangement) de `tabs` (affichage) ; `Category` porte un indicateur `isView`, que `SettingsPanel` filtre pour ne jamais proposer une vue comme destination ; et `normalizeProfile` rattache au chargement, à une catégorie réelle, tout pictogramme personnalisé orphelin — les données déjà créées sont donc récupérées, non perdues. 7 tests ajoutés (92 au total), dont la reproduction de la panne, plus une vérification navigateur de bout en bout. **Leçon de méthode :** le scénario navigateur du lot favoris ne couvrait pas l'ajout d'un pictogramme, et celui du lot précédent avait été écrit avant l'existence de l'onglet Favoris — la régression est passée entre les deux.
