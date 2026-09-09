@@ -5,7 +5,12 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  {
+    // `android/` est un projet natif généré : ses sources viennent de
+    // Capacitor et de Gradle, pas du dépôt, et le pont JavaScript recopié
+    // dans `build/` déclenche des règles qui ne s'appliquent pas à lui.
+    ignores: ['dist', 'android'],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

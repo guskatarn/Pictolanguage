@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { TextToSpeech } from '@capacitor-community/text-to-speech'
 
 /**
  * Choisit la voix française à utiliser, en privilégiant une voix **locale**.
@@ -14,6 +16,9 @@ import { useState, useCallback, useRef, useEffect } from 'react'
  * À qualité de disponibilité égale, les voix « enhanced » restent écartées :
  * elles supposent un téléchargement préalable et démarrent plus lentement, or
  * un retour immédiat compte davantage ici qu'un timbre plus naturel.
+ *
+ * N'est utilisée que par le chemin navigateur : dans l'application empaquetée,
+ * c'est le moteur du système qui choisit la voix (voir plus bas).
  */
 export function selectVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   const french = voices.filter((v) => v.lang.toLowerCase().startsWith('fr'))
@@ -29,11 +34,26 @@ export function selectVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoic
   )
 }
 
+/**
+ * Lecture à voix haute, par deux chemins distincts.
+ *
+ * **Dans l'application empaquetée**, la synthèse passe par le moteur de
+ * synthèse vocale d'Android, via un greffon Capacitor. Ce n'est pas un
+ * raffinement : la WebView d'Android **n'implémente pas** l'API Web Speech,
+ * contrairement à Chrome. Le même code qui parle sur un poste de bureau et
+ * dans le navigateur d'une tablette reste totalement muet une fois empaqueté,
+ * sans erreur ni message — panne constatée sur appareil le 2026-09-09.
+ *
+ * **Dans un navigateur** (développement, version web installable), on garde
+ * `window.speechSynthesis` et le choix de voix ci-dessus.
+ */
 export function useSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const voicesRef = useRef<SpeechSynthesisVoice[]>([])
-  const isSupported = typeof window !== 'undefined' && 'speechSynthesis' in window
+  const isNative = Capacitor.isNativePlatform()
+  const hasWebSpeech = typeof window !== 'undefined' && 'speechSynthesis' in window
+  const isSupported = isNative || hasWebSpeech
 
   /**
    * `getVoices()` renvoie souvent une liste vide au premier appel, la liste
@@ -42,18 +62,46 @@ export function useSpeech() {
    * voix en ligne, exactement ce que `selectVoice` cherche à éviter.
    */
   useEffect(() => {
-    if (!isSupported) return
+    if (isNative || !hasWebSpeech) return
     const load = () => {
       voicesRef.current = window.speechSynthesis.getVoices()
     }
     load()
     window.speechSynthesis.addEventListener('voiceschanged', load)
     return () => window.speechSynthesis.removeEventListener('voiceschanged', load)
-  }, [isSupported])
+  }, [isNative, hasWebSpeech])
 
   const speak = useCallback(
     (text: string, options?: { rate?: number; volume?: number }) => {
       if (!isSupported || !text.trim()) return
+
+      if (isNative) {
+        setIsSpeaking(true)
+        // `stop()` d'abord : deux appuis rapprochés sur « Parler » feraient
+        // sinon la queue, et l'enfant entendrait sa phrase deux fois.
+        TextToSpeech.stop()
+          .catch(() => {})
+          .then(() =>
+            TextToSpeech.speak({
+              text,
+              lang: 'fr-FR',
+              rate: options?.rate ?? 1,
+              volume: options?.volume ?? 1,
+              pitch: 1,
+            }),
+          )
+          // La promesse ne se résout qu'à la fin de l'énoncé : c'est elle qui
+          // rend l'animation du bouton fidèle à ce qu'on entend.
+          .catch((erreur) => {
+            // Un échec ici est silencieux pour l'enfant, qui n'a aucun moyen
+            // de comprendre pourquoi rien ne sort. La trace part dans le
+            // journal du système (`adb logcat`), seul endroit où l'on peut
+            // distinguer un moteur absent d'une langue non installée.
+            console.error('[disavecmoi] synthèse vocale indisponible :', erreur)
+          })
+          .finally(() => setIsSpeaking(false))
+        return
+      }
 
       window.speechSynthesis.cancel()
 
@@ -76,14 +124,18 @@ export function useSpeech() {
       utteranceRef.current = utterance
       window.speechSynthesis.speak(utterance)
     },
-    [isSupported],
+    [isSupported, isNative],
   )
 
   const cancel = useCallback(() => {
     if (!isSupported) return
-    window.speechSynthesis.cancel()
+    if (isNative) {
+      TextToSpeech.stop().catch(() => {})
+    } else {
+      window.speechSynthesis.cancel()
+    }
     setIsSpeaking(false)
-  }, [isSupported])
+  }, [isSupported, isNative])
 
   return { speak, cancel, isSpeaking, isSupported }
 }

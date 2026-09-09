@@ -1,5 +1,17 @@
-import { describe, it, expect } from 'vitest'
-import { selectVoice } from './useSpeech'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { Capacitor } from '@capacitor/core'
+import { selectVoice, useSpeech } from './useSpeech'
+
+// Les méthodes du greffon sont servies par un proxy : `vi.spyOn` n'a rien à
+// quoi s'accrocher, d'où le remplacement du module entier.
+const { parleNatif, stopNatif } = vi.hoisted(() => ({
+  parleNatif: vi.fn(),
+  stopNatif: vi.fn(),
+}))
+vi.mock('@capacitor-community/text-to-speech', () => ({
+  TextToSpeech: { speak: parleNatif, stop: stopNatif },
+}))
 
 function voice(
   name: string,
@@ -53,5 +65,73 @@ describe('selectVoice', () => {
   it('ne renvoie rien quand la liste est vide', () => {
     // Cas réel au premier appel : `getVoices()` est peuplé de façon asynchrone.
     expect(selectVoice([])).toBeNull()
+  })
+})
+
+describe('useSpeech — chemin natif', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('passe par le moteur du système quand l’application est empaquetée', async () => {
+    // La WebView d'Android n'implémente pas l'API Web Speech : le chemin
+    // navigateur y reste muet, sans la moindre erreur. Constaté sur appareil
+    // le 2026-09-09, d'où ce test de non-régression.
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
+    parleNatif.mockResolvedValue(undefined)
+    stopNatif.mockResolvedValue(undefined)
+    const parleWeb = vi.fn()
+    vi.stubGlobal('speechSynthesis', { speak: parleWeb, cancel: vi.fn(), getVoices: () => [] })
+
+    const { result } = renderHook(() => useSpeech())
+    act(() => result.current.speak('moi vouloir manger', { rate: 1.2, volume: 0.8 }))
+    await waitFor(() => expect(parleNatif).toHaveBeenCalled())
+
+    expect(parleNatif).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'moi vouloir manger',
+        lang: 'fr-FR',
+        rate: 1.2,
+        volume: 0.8,
+      }),
+    )
+    expect(parleWeb).not.toHaveBeenCalled()
+  })
+
+  it('garde le chemin navigateur hors application empaquetée', () => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false)
+    parleNatif.mockResolvedValue(undefined)
+    const parleWeb = vi.fn()
+    vi.stubGlobal('speechSynthesis', {
+      speak: parleWeb,
+      cancel: vi.fn(),
+      getVoices: () => [voice('Hortense', 'fr-FR', true)],
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })
+    // jsdom n'implémente pas non plus l'API Web Speech, dont la classe
+    // d'énoncé : sans ce doublet, le chemin navigateur ne peut pas être testé.
+    vi.stubGlobal(
+      'SpeechSynthesisUtterance',
+      class {
+        lang = ''
+        rate = 1
+        volume = 1
+        pitch = 1
+        voice: SpeechSynthesisVoice | null = null
+        constructor(public text: string) {}
+      },
+    )
+
+    const { result, unmount } = renderHook(() => useSpeech())
+    act(() => result.current.speak('bonjour'))
+
+    expect(parleWeb).toHaveBeenCalled()
+    expect(parleNatif).not.toHaveBeenCalled()
+    // Démonté ici, et non par le nettoyage global : celui-ci s'exécute après
+    // le retrait des doublets, et l'effet de démontage retomberait sur un
+    // `speechSynthesis` redevenu indéfini.
+    unmount()
   })
 })

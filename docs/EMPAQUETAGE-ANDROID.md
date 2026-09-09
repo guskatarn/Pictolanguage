@@ -27,6 +27,7 @@ hébergement, abandonné avec le nom de domaine le 2026-09-04.
 | `versionCode` dérivé de `package.json` | `scripts/build-android.mjs` | Play refuse un `versionCode` non croissant, et un numéro consommé est perdu définitivement. Une seule source évite la divergence. |
 | Icônes et écran de lancement | `npm run assets -- --android` | Sans cela, l'application porte le logo de Capacitor sur l'écran d'accueil. |
 | `values/colors.xml` | ajouté | **Absent du gabarit Capacitor 7** alors que `styles.xml` y fait référence : sans lui, la compilation échoue. |
+| Synthèse vocale **native** | `src/hooks/useSpeech.ts` + greffon | **La WebView d'Android n'implémente pas l'API Web Speech** : le code qui parle dans Chrome reste muet une fois empaqueté, sans erreur. Constaté sur appareil le 2026-09-09. |
 | Signature facultative | `android/app/build.gradle` | Lue dans `android/key.properties`, hors dépôt. Tant que le fichier n'existe pas, les builds de test fonctionnent quand même. |
 
 Permissions demandées : **`INTERNET` seulement** (recherche ARASAAC dans les
@@ -151,10 +152,15 @@ Reprend `AUDIT.md` §0 N12. Ces points ne se voient pas dans un navigateur de
 bureau, et chacun peut invalider une promesse déjà écrite dans la politique de
 confidentialité ou dans la fiche du store.
 
-1. **La voix, réseau coupé.** `selectVoice()` privilégie une voix `localService`,
-   mais dans une WebView Android la liste des voix est souvent vide au démarrage
-   et cet indicateur n'a pas la même signification que sur un poste. Toute la
-   promesse « le texte ne quitte pas l'appareil » repose sur ce test.
+1. **La voix.** ~~`selectVoice()` privilégie une voix `localService`…~~ **Panne
+   confirmée le 2026-09-09 : muette sur appareil, même avec le réseau.** La
+   WebView d'Android n'implémente pas l'API Web Speech, contrairement à Chrome ;
+   la lecture passe désormais par le moteur du système
+   (`@capacitor-community/text-to-speech`). À revérifier sur appareil, puis
+   **réseau coupé** : c'est là que se joue la promesse « le texte ne quitte pas
+   l'appareil », qui dépend maintenant des voix françaises téléchargées dans le
+   moteur (Paramètres Android → Synthèse vocale). Si le son manque toujours, le
+   journal (`adb logcat`) porte désormais la raison exacte.
 2. **Les liens externes** (politique de confidentialité, ARASAAC) doivent ouvrir
    le navigateur du système. S'ils s'ouvrent dans la WebView, l'enfant s'y
    retrouve enfermé sans barre d'adresse ni retour — et Google Play Families
