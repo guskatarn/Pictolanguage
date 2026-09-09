@@ -11,6 +11,7 @@ import CoreVocabularyBar from './components/CoreVocabularyBar'
 import HistoryPanel from './components/HistoryPanel'
 import SettingsPanel from './components/SettingsPanel'
 import StorageAlert from './components/StorageAlert'
+import ParentGate from './components/ParentGate'
 import { DEFAULT_CATEGORIES, FAVORITES_CATEGORY_ID } from './data/defaultCategories'
 import { CORE_VOCABULARY } from './data/coreVocabulary'
 
@@ -28,6 +29,8 @@ export default function App() {
     updateProfile,
     deleteProfile,
     addToHistory,
+    parentPin,
+    setParentPin,
     toggleHidePictogram,
     toggleHideCustomPictogram,
     toggleFavorite,
@@ -51,6 +54,14 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null)
+  /**
+   * Mode parent : ouvert tant qu'aucun code n'est installé, sinon fermé à
+   * chaque lancement. Volontairement en mémoire seulement — un mode parent
+   * persisté resterait ouvert des jours durant sur la tablette d'un enfant, et
+   * le verrou ne servirait plus à rien.
+   */
+  const [isParentMode, setIsParentMode] = useState(false)
+  const [demandeCode, setDemandeCode] = useState<null | 'reglages' | 'profils'>(null)
   const [showInstallBanner, setShowInstallBanner] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -91,6 +102,29 @@ export default function App() {
       customImageUrl: picto.isCustom ? picto.imageUrl : undefined,
     }
     setSentence((prev) => [...prev, item])
+  }
+
+  const estVerrouille = parentPin !== null && !isParentMode
+
+  /**
+   * Exécute une action réservée à l'adulte, ou demande le code d'abord.
+   * `intention` retient ce qu'il faudra ouvrir une fois le code validé.
+   */
+  const actionParent = (intention: 'reglages' | 'profils') => {
+    if (estVerrouille) {
+      setDemandeCode(intention)
+      return
+    }
+    ouvrirEspaceParent(intention)
+  }
+
+  const ouvrirEspaceParent = (intention: 'reglages' | 'profils') => {
+    if (intention === 'reglages') {
+      setShowSettings(true)
+      setShowHistory(false)
+    } else {
+      setActiveProfileId(null)
+    }
   }
 
   const handleToggleFavorite = (picto: PictogramItem) => {
@@ -183,7 +217,7 @@ export default function App() {
           d'installation affichée, le total dépassait la largeur disponible.
         */}
         <button
-          onClick={() => setActiveProfileId(null)}
+          onClick={() => actionParent('profils')}
           className="flex min-h-[44px] min-w-0 items-center gap-2 bg-white/15 rounded-xl px-3 py-1.5 active:scale-95 transition-transform"
           aria-label="Changer de profil"
         >
@@ -211,10 +245,7 @@ export default function App() {
             📜
           </button>
           <button
-            onClick={() => {
-              setShowSettings(true)
-              setShowHistory(false)
-            }}
+            onClick={() => actionParent('reglages')}
             className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-xl active:scale-95"
             aria-label="Paramètres"
           >
@@ -262,6 +293,10 @@ export default function App() {
                 size={activeProfile.settings.pictogramSize}
                 onClick={handlePictogramClick}
                 onToggleFavorite={handleToggleFavorite}
+                // Verrou posé : l'étoile disparaît. C'était la réserve ouverte
+                // depuis le lot favoris — un enfant qui vise son mot touchait
+                // l'étoile d'à côté et n'entendait rien.
+                showFavorite={!estVerrouille}
               />
             ))}
             {pictograms.length === 0 && (
@@ -300,6 +335,12 @@ export default function App() {
 
       {showSettings && (
         <SettingsPanel
+          parentPin={parentPin}
+          onSetParentPin={setParentPin}
+          onLock={() => {
+            setIsParentMode(false)
+            setShowSettings(false)
+          }}
           profile={activeProfile}
           categories={categories}
           onClose={() => setShowSettings(false)}
@@ -315,6 +356,20 @@ export default function App() {
           usedBytes={usedBytes}
           onExportData={exportData}
           onImportData={importData}
+        />
+      )}
+
+      {demandeCode && (
+        <ParentGate
+          mode="verification"
+          codeAttendu={parentPin}
+          onSuccess={() => {
+            setIsParentMode(true)
+            ouvrirEspaceParent(demandeCode)
+            setDemandeCode(null)
+          }}
+          onCancel={() => setDemandeCode(null)}
+          onPinChange={(code) => setParentPin(code)}
         />
       )}
 

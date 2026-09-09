@@ -90,6 +90,15 @@ export interface InstallPromptEvent extends Event {
 export interface StoredData {
   profiles: UserProfile[]
   activeProfileId: string | null
+  /**
+   * Code parent à quatre chiffres, `null` tant qu'aucun n'a été choisi.
+   *
+   * Volontairement **hors des profils** : il protège l'appareil, pas un enfant
+   * en particulier. Le ranger dans un profil permettrait d'en changer pour
+   * contourner le verrou. Enregistré en clair — voir `ParentGate` pour la
+   * raison.
+   */
+  parentPin: string | null
 }
 
 /** Enveloppe d'un fichier de sauvegarde exporté par l'utilisateur. */

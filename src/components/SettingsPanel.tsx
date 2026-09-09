@@ -4,6 +4,7 @@ import { ImportMode, ImportOutcome } from '../hooks/useProfiles'
 import { fileToStoredImage, remoteImageToStoredImage, isStoredLocally } from '../utils/image'
 import BackupTab from './BackupTab'
 import CategoryManager from './CategoryManager'
+import ParentGate from './ParentGate'
 
 const PRIVACY_POLICY_URL = 'https://guskatarn.github.io/Pictolanguage/'
 
@@ -22,9 +23,14 @@ interface Props {
   usedBytes: number
   onExportData: () => void
   onImportData: (raw: string, mode: ImportMode) => ImportOutcome
+  /** Code parent enregistré, `null` tant qu'aucun verrou n'est posé. */
+  parentPin: string | null
+  onSetParentPin: (pin: string | null) => void
+  /** Referme les réglages en reverrouillant, sans attendre le prochain lancement. */
+  onLock: () => void
 }
 
-type Tab = 'display' | 'voice' | 'categories' | 'custom' | 'backup'
+type Tab = 'display' | 'voice' | 'categories' | 'custom' | 'backup' | 'parent'
 
 export default function SettingsPanel({
   profile,
@@ -40,6 +46,9 @@ export default function SettingsPanel({
   usedBytes,
   onExportData,
   onImportData,
+  parentPin,
+  onSetParentPin,
+  onLock,
 }: Props) {
   // Les vues (« Favoris ») ne peuvent pas accueillir de pictogramme : les
   // exclure ici évite qu'un ajout disparaisse dans une catégorie inexistante.
@@ -55,6 +64,7 @@ export default function SettingsPanel({
   const [customError, setCustomError] = useState<string | null>(null)
   const [isPreparingImage, setIsPreparingImage] = useState(false)
   const [isSavingCustom, setIsSavingCustom] = useState(false)
+  const [choixCode, setChoixCode] = useState(false)
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -110,6 +120,7 @@ export default function SettingsPanel({
     { id: 'categories', label: 'Catégories', icon: '📂' },
     { id: 'custom', label: 'Ajouter', icon: '➕' },
     { id: 'backup', label: 'Sauvegarde', icon: '💾' },
+    { id: 'parent', label: 'Parent', icon: '🔒' },
   ]
 
   return (
@@ -404,7 +415,70 @@ export default function SettingsPanel({
               onImport={onImportData}
             />
           )}
+          {activeTab === 'parent' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-bold text-gray-700">Code parent</h3>
+                <p className="mt-1 text-xs leading-snug text-gray-500">
+                  Un code à quatre chiffres protège les réglages, le changement de profil et
+                  les étoiles de favori. Les étoiles disparaissent alors de la grille : l'enfant
+                  ne peut plus en poser une par mégarde en visant son pictogramme.
+                </p>
+              </div>
+
+              {parentPin === null ? (
+                <button
+                  onClick={() => setChoixCode(true)}
+                  className="min-h-[44px] w-full rounded-xl bg-violet-600 py-3 font-bold text-white active:scale-95"
+                >
+                  🔒 Installer un code
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p
+                    role="status"
+                    className="rounded-lg bg-green-50 p-2.5 text-xs font-bold leading-snug text-green-800"
+                  >
+                    Un code est en place. Il sera redemandé au prochain lancement.
+                  </p>
+                  <button
+                    onClick={onLock}
+                    className="min-h-[44px] w-full rounded-xl bg-violet-600 py-3 font-bold text-white active:scale-95"
+                  >
+                    Verrouiller maintenant
+                  </button>
+                  <button
+                    onClick={() => setChoixCode(true)}
+                    className="min-h-[44px] w-full rounded-xl bg-gray-100 py-3 font-bold text-gray-700 active:scale-95"
+                  >
+                    Changer le code
+                  </button>
+                  <button
+                    onClick={() => onSetParentPin(null)}
+                    className="min-h-[44px] w-full rounded-xl bg-red-50 py-3 font-bold text-red-600 active:scale-95"
+                  >
+                    Retirer le code
+                  </button>
+                </div>
+              )}
+
+              <p className="text-xs leading-snug text-gray-400">
+                Ce code écarte les fausses manœuvres d'un enfant ; ce n'est pas un dispositif
+                de sécurité, et il est enregistré tel quel sur l'appareil. Oublié, il se
+                remplace depuis l'écran de verrouillage, sans perdre aucune donnée.
+              </p>
+            </div>
+          )}
         </div>
+
+        {choixCode && (
+          <ParentGate
+            mode="creation"
+            onSuccess={() => setChoixCode(false)}
+            onCancel={() => setChoixCode(false)}
+            onPinChange={onSetParentPin}
+          />
+        )}
 
         {/*
           Attribution ARASAAC — obligation juridique, pas une politesse : les

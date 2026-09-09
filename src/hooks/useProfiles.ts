@@ -80,6 +80,16 @@ export function useProfiles() {
 
   const dismissStorageError = useCallback(() => setStorageError(null), [])
 
+  /**
+   * Installe, remplace ou retire le code parent (`null` pour le retirer).
+   * Passe par `persist`, donc un quota saturé annule le changement au lieu de
+   * laisser croire à un verrou qui n'aurait pas été enregistré.
+   */
+  const setParentPin = useCallback(
+    (pin: string | null) => persist({ ...data, parentPin: pin }),
+    [data, persist],
+  )
+
   const activeProfile = data.profiles.find((p) => p.id === data.activeProfileId) ?? null
 
   /** Taille approximative des données persistées, pour la jauge d'occupation. */
@@ -96,8 +106,11 @@ export function useProfiles() {
     (name: string, avatar: string): UserProfile | null => {
       if (data.profiles.length >= MAX_PROFILES) return null
       const profile = createDefaultProfile(name, avatar)
-      // Activate the new profile in the same update to avoid stale-closure race
+      // Activate the new profile in the same update to avoid stale-closure race.
+      // `...data` d'abord : sans lui, créer un profil effacerait tout champ
+      // hors profils — le code parent, aujourd'hui, et le suivant demain.
       const next: StoredData = {
+        ...data,
         profiles: [...data.profiles, profile],
         activeProfileId: profile.id,
       }
@@ -120,6 +133,7 @@ export function useProfiles() {
   const deleteProfile = useCallback(
     (id: string) => {
       const next: StoredData = {
+        ...data,
         profiles: data.profiles.filter((p) => p.id !== id),
         activeProfileId: data.activeProfileId === id ? null : data.activeProfileId,
       }
@@ -359,6 +373,8 @@ export function useProfiles() {
     updateProfile,
     deleteProfile,
     addToHistory,
+    parentPin: data.parentPin,
+    setParentPin,
     toggleHidePictogram,
     toggleHideCustomPictogram,
     toggleFavorite,

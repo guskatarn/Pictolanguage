@@ -7,6 +7,8 @@ interface Props {
   size: PictogramSize
   onClick: (picto: PictogramItem) => void
   onToggleFavorite: (picto: PictogramItem) => void
+  /** Retirée hors mode parent : l'enfant ne doit pas pouvoir la toucher. */
+  showFavorite?: boolean
 }
 
 const sizeMap: Record<PictogramSize, { img: number; text: string; padding: string }> = {
@@ -15,7 +17,13 @@ const sizeMap: Record<PictogramSize, { img: number; text: string; padding: strin
   L: { img: 140, text: 'text-base', padding: 'p-2.5' },
 }
 
-export default function PictogramCard({ picto, size, onClick, onToggleFavorite }: Props) {
+export default function PictogramCard({
+  picto,
+  size,
+  onClick,
+  onToggleFavorite,
+  showFavorite = true,
+}: Props) {
   const { src, failed, onError } = usePictogramImage(picto.imageUrl, picto.arasaacId)
   const s = sizeMap[size]
   // Les couleurs viennent de la catégorie du pictogramme, pas de l'onglet
@@ -67,25 +75,28 @@ export default function PictogramCard({ picto, size, onClick, onToggleFavorite }
       {/*
         L'étoile inactive reste discrète : cinq étoiles pleinement visibles
         alourdiraient une grille destinée à un public sensible à la surcharge
-        visuelle. Seuls les favoris ressortent vraiment.
+        visuelle. Seuls les favoris ressortent vraiment. Elle disparaît
+        entièrement quand le verrou parental est posé.
       */}
-      <button
-        type="button"
-        onClick={() => onToggleFavorite(picto)}
-        className={`absolute top-1 right-1 flex h-9 w-9 items-center justify-center rounded-full text-lg transition-transform active:scale-90 ${
-          picto.isFavorite
-            ? 'bg-white/90 text-amber-500 shadow-sm'
-            : 'text-gray-400/60'
-        }`}
-        aria-label={
-          picto.isFavorite
-            ? `Retirer ${picto.word} des favoris`
-            : `Ajouter ${picto.word} aux favoris`
-        }
-        aria-pressed={picto.isFavorite}
-      >
-        <span aria-hidden="true">{picto.isFavorite ? '⭐' : '☆'}</span>
-      </button>
+      {showFavorite && (
+        <button
+          type="button"
+          onClick={() => onToggleFavorite(picto)}
+          className={`absolute top-1 right-1 flex h-9 w-9 items-center justify-center rounded-full text-lg transition-transform active:scale-90 ${
+            picto.isFavorite
+              ? 'bg-white/90 text-amber-500 shadow-sm'
+              : 'text-gray-400/60'
+          }`}
+          aria-label={
+            picto.isFavorite
+              ? `Retirer ${picto.word} des favoris`
+              : `Ajouter ${picto.word} aux favoris`
+          }
+          aria-pressed={picto.isFavorite}
+        >
+          <span aria-hidden="true">{picto.isFavorite ? '⭐' : '☆'}</span>
+        </button>
+      )}
     </div>
   )
 }

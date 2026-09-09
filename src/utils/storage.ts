@@ -109,18 +109,29 @@ function normalizeStoredData(raw: unknown): StoredData | null {
     profiles.some((p) => p.id === candidate.activeProfileId)
       ? candidate.activeProfileId
       : null
-  return { profiles, activeProfileId }
+  // Un code corrompu (mauvaise longueur, caractères non numériques, données
+  // d'une version antérieure) est traité comme une absence de code : mieux vaut
+  // une application déverrouillée qu'un parent enfermé hors de ses données par
+  // un code que personne ne peut plus saisir.
+  const parentPin =
+    typeof candidate.parentPin === 'string' && /^\d{4}$/.test(candidate.parentPin)
+      ? candidate.parentPin
+      : null
+  return { profiles, activeProfileId, parentPin }
 }
 
 export function loadData(): StoredData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return normalizeStoredData(JSON.parse(raw)) ?? { profiles: [], activeProfileId: null }
+    if (raw)
+      return (
+        normalizeStoredData(JSON.parse(raw)) ?? { profiles: [], activeProfileId: null, parentPin: null }
+      )
   } catch {
     // Stockage indisponible ou contenu corrompu : on repart à vide plutôt que
     // de bloquer le démarrage de l'application.
   }
-  return { profiles: [], activeProfileId: null }
+  return { profiles: [], activeProfileId: null, parentPin: null }
 }
 
 export function saveData(data: StoredData): SaveResult {

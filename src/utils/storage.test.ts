@@ -8,6 +8,7 @@ const STORAGE_KEY = 'pictoapp-data'
 const data: StoredData = {
   profiles: [makeProfile({ categoryOrder: ['besoins'], settings: { pictogramSize: 'L', voiceRate: 1.2, voiceVolume: 0.8, showCoreBar: false } })],
   activeProfileId: 'p1',
+  parentPin: null,
 }
 
 /** Force le prochain `setItem` à échouer comme un quota saturé. */
@@ -45,7 +46,7 @@ describe('saveData / loadData', () => {
 
   it('repart d’un état vide si le contenu stocké est corrompu', () => {
     localStorage.setItem(STORAGE_KEY, '{ ceci nest pas du json')
-    expect(loadData()).toEqual({ profiles: [], activeProfileId: null })
+    expect(loadData()).toEqual({ profiles: [], activeProfileId: null, parentPin: null })
   })
 
   it('complète un profil créé avant l’ajout de showCoreBar', () => {

@@ -36,6 +36,9 @@ function setup(categories: Category[]) {
       searchArasaac={async () => [RESULTAT]}
       usedBytes={0}
       onExportData={() => {}}
+      parentPin={null}
+      onSetParentPin={() => {}}
+      onLock={() => {}}
       onImportData={() => ({ ok: true, message: '' })}
     />,
   )
