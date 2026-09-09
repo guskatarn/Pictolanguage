@@ -108,23 +108,42 @@ que le build a été fait sans `CAPACITOR=1`, donc avec le service worker.
 
 ## 6. Clé de signature
 
-À créer **une seule fois**, puis à sauvegarder ailleurs que sur la machine de
-développement : une clé de téléversement perdue impose de passer par
-l'assistance de Google, et l'application publiée ne peut pas en changer seule.
+**Créée le 2026-09-09.** Elle ne se recrée pas : une application publiée ne peut
+pas changer de clé de téléversement, et une clé perdue impose de passer par
+l'assistance de Google.
+
+| | |
+| --- | --- |
+| Emplacement | `C:\Users\User\Documents\disavecmoi-signature\disavecmoi-upload.jks` — **hors du dépôt** |
+| Format | PKCS#12, RSA 2048 bits, SHA384withRSA |
+| Alias | `disavecmoi` |
+| Titulaire | `CN=Benoit Lacroix, O=disavecmoi, C=FR` |
+| Validité | 9 septembre 2026 → 25 janvier 2054 (Play exige au moins 2033) |
+| SHA-256 | `94:66:78:CC:DC:89:E6:AB:61:70:E1:E4:4F:D6:78:19:FA:93:31:EE:25:E7:16:01:32:61:F7:6A:9A:B8:C4:5E` |
+| SHA-1 | `53:A8:B7:0E:84:16:2F:4F:B2:9E:4F:8C:FC:09:F5:5C:79:32:E5:5D` |
+
+Le mot de passe (le même pour le magasin et pour la clé) est dans
+`android/key.properties`, ignoré par git. **Il n'est écrit nulle part
+ailleurs** : le recopier dans un gestionnaire de mots de passe, et sauvegarder
+le `.jks` hors de cette machine. Les deux perdus ensemble, l'application ne peut
+plus être mise à jour — il faudrait en republier une autre, sous un nouvel
+identifiant, et les familles qui l'ont installée ne recevraient plus rien.
+
+Les empreintes ci-dessus sont publiques : elles servent à vérifier, dans la
+console Play, que le fichier téléversé est bien signé par cette clé.
+
+Vérifier une signature :
 
 ```sh
-keytool -genkeypair -v -keystore disavecmoi.jks -keyalg RSA -keysize 2048 \
-        -validity 10000 -alias disavecmoi
+jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
+# doit répondre « jar verified. »
 ```
 
-Puis `android/key.properties` (ignoré par git) :
-
-```properties
-storeFile=C:/chemin/hors/depot/disavecmoi.jks
-storePassword=...
-keyAlias=disavecmoi
-keyPassword=...
-```
+**Signature Play (« Play App Signing »).** Google resigne l'application avec sa
+propre clé de diffusion ; celle-ci ne sert qu'à prouver que le téléversement
+vient bien de l'éditeur. C'est ce mécanisme qui permet de récupérer la main si
+la clé de téléversement est un jour compromise — mais il faut alors en faire la
+demande, la reconstitution n'a rien d'automatique.
 
 ## 7. À vérifier sur un appareil réel, dans cet ordre
 
