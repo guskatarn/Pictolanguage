@@ -3,6 +3,19 @@ import { UserProfile, PictogramItem, Category } from '../types'
 import { DEFAULT_PICTOGRAMS, getArasaacImageUrl } from '../data/defaultPictograms'
 import { DEFAULT_CATEGORIES, FAVORITES_CATEGORY } from '../data/defaultCategories'
 
+/**
+ * Pour comparer « fatigue » et « fatigué », ou « Ecole » et « école » : un
+ * adulte qui cherche vite ne met pas les accents, et une recherche qui n'y
+ * répond pas donne l'impression que le mot n'existe pas.
+ */
+function sansAccents(texte: string): string {
+  return texte
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
 export function usePictograms(activeProfile: UserProfile | null) {
   const categories: Category[] = useMemo(() => {
     // Une catégorie absente de l'ordre du profil (ajoutée par une mise à jour
@@ -123,6 +136,29 @@ export function usePictograms(activeProfile: UserProfile | null) {
     }
   }, [activeProfile])
 
+  /**
+   * Recherche dans le vocabulaire **déjà présent** sur l'appareil, catégories
+   * et pictogrammes personnalisés confondus.
+   *
+   * Distincte de `searchArasaac`, qui interroge la banque en ligne pour en
+   * ajouter de nouveaux : ici on retrouve un mot que l'enfant possède déjà mais
+   * dont l'adulte ne sait plus dans quelle catégorie il est rangé — le cas
+   * courant en pleine composition de phrase, quand chercher au bon endroit
+   * prend plus de temps que l'enfant n'en accorde.
+   *
+   * Les pictogrammes masqués en sont exclus : un mot écarté par le parent ne
+   * doit ressurgir par aucun chemin.
+   */
+  const searchPictograms = useMemo(() => {
+    return (requete: string): PictogramItem[] => {
+      const terme = sansAccents(requete)
+      if (terme.length === 0) return []
+      return DEFAULT_CATEGORIES.flatMap((c) => getPictogramsForCategory(c.id)).filter(
+        (p) => !p.isHidden && sansAccents(p.word).includes(terme),
+      )
+    }
+  }, [getPictogramsForCategory])
+
   const searchArasaac = async (keyword: string): Promise<PictogramItem[]> => {
     try {
       const res = await fetch(
@@ -145,5 +181,12 @@ export function usePictograms(activeProfile: UserProfile | null) {
     }
   }
 
-  return { categories, tabs, getPictogramsForCategory, getFavoritePictograms, searchArasaac }
+  return {
+    categories,
+    tabs,
+    getPictogramsForCategory,
+    getFavoritePictograms,
+    searchPictograms,
+    searchArasaac,
+  }
 }

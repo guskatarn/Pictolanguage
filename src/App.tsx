@@ -9,6 +9,7 @@ import PictogramCard from './components/PictogramCard'
 import SentenceBar from './components/SentenceBar'
 import CoreVocabularyBar from './components/CoreVocabularyBar'
 import HistoryPanel from './components/HistoryPanel'
+import SearchPanel from './components/SearchPanel'
 import SettingsPanel from './components/SettingsPanel'
 import StorageAlert from './components/StorageAlert'
 import ParentGate from './components/ParentGate'
@@ -45,14 +46,21 @@ export default function App() {
 
   // `categories` = catégories de rangement (destination possible d'un
   // pictogramme). `tabs` = ce qu'affiche la barre d'onglets, favoris compris.
-  const { categories, tabs, getPictogramsForCategory, getFavoritePictograms, searchArasaac } =
-    usePictograms(activeProfile)
+  const {
+    categories,
+    tabs,
+    getPictogramsForCategory,
+    getFavoritePictograms,
+    searchPictograms,
+    searchArasaac,
+  } = usePictograms(activeProfile)
   const { speak, isSpeaking } = useSpeech()
 
   const [activeCategory, setActiveCategory] = useState(DEFAULT_CATEGORIES[0]?.id ?? 'besoins')
   const [sentence, setSentence] = useState<SentenceItem[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null)
   /**
    * Mode parent : ouvert tant qu'aucun code n'est installé, sinon fermé à
@@ -234,6 +242,17 @@ export default function App() {
               📲 Installer
             </button>
           )}
+          {/*
+            La recherche reste accessible sans code : elle ne modifie rien, et
+            son intérêt est justement d'aller vite au milieu d'un échange.
+          */}
+          <button
+            onClick={() => setShowSearch(true)}
+            className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-xl active:scale-95"
+            aria-label="Chercher un mot"
+          >
+            🔍
+          </button>
           <button
             onClick={() => {
               setShowHistory(true)
@@ -332,6 +351,14 @@ export default function App() {
       </div>
 
       {/* Overlays */}
+      {showSearch && (
+        <SearchPanel
+          onSearch={searchPictograms}
+          onSelect={handlePictogramClick}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+
       {showHistory && (
         <HistoryPanel
           history={activeProfile.history}
