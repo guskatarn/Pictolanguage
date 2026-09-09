@@ -19,6 +19,7 @@ hébergement, abandonné avec le nom de domaine le 2026-09-04.
 | --- | --- | --- |
 | Identifiant `io.github.guskatarn.disavecmoi` | `capacitor.config.ts` | **Définitif après publication.** Construit sur `guskatarn.github.io`, le seul domaine dont dispose réellement l'éditeur. |
 | Capacitor **7** (et non 8) | `package.json` | La v8 exige Node ≥ 22, la machine est en 20.11. Même famille de contrainte que vitest v2 et jsdom v25. |
+| AGP **8.11.1**, Gradle **8.13** | `android/build.gradle`, wrapper | Le gabarit livre AGP 8.7.2, « testé jusqu'à compileSdk 35 » seulement, qui le rappelle à chaque build. |
 | `compileSdk` / `targetSdk` **36** | `android/variables.gradle` | Le gabarit Capacitor 7 propose 35 ; depuis le 31 août 2026, Play refuse toute **nouvelle** application visant moins que 36. |
 | `adjustMarginsForEdgeToEdge: 'auto'` | `capacitor.config.ts` | Corollaire du point précédent : à partir d'Android 15, le bord-à-bord est imposé et la barre violette passerait sous la barre d'état. |
 | `allowBackup="false"` | `AndroidManifest.xml` | La sauvegarde automatique d'Android copierait le `localStorage` — prénom, photos, phrases — vers le Google Drive du parent, ce que la politique de confidentialité exclut. |
@@ -49,23 +50,39 @@ Mineur et correctif doivent rester sous 100 — le script s'arrête sinon, deux
 versions différentes donneraient le même code. **Chaque téléversement, y
 compris en test fermé, consomme un `versionCode` définitivement.**
 
-## 4. Ce qu'il reste à installer pour produire un binaire
+## 4. Chaîne de compilation
 
-Présents sur la machine : Node 20.11 et le JDK 21. **Manquent le SDK Android et
-ses outils de compilation** — sans eux, `gradlew` ne peut rien produire.
+Installée et vérifiée le 2026-09-09 sur le poste de l'éditeur : Node 20.11,
+JDK 21, et le SDK Android dans `%LOCALAPPDATA%\Android\Sdk` (`ANDROID_HOME` et
+`ANDROID_SDK_ROOT` sont enregistrées de façon permanente). Pour refaire la même
+installation ailleurs :
 
 ```sh
 # 1. Outils en ligne de commande (ou Android Studio, qui les embarque)
 #    https://developer.android.com/studio#command-line-tools-only
 #    à décompresser dans %LOCALAPPDATA%\Android\Sdk\cmdline-tools\latest
+#    (vérifier l'empreinte SHA-256 publiée à côté du lien)
 
 # 2. Variables d'environnement
 setx ANDROID_HOME "%LOCALAPPDATA%\Android\Sdk"
+setx ANDROID_SDK_ROOT "%LOCALAPPDATA%\Android\Sdk"
 
 # 3. Composants nécessaires
-sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 sdkmanager --licenses
+sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 ```
+
+`android/local.properties` (hors dépôt) désigne le SDK pour Gradle ; il est
+recréé sur chaque poste.
+
+**Sorties obtenues** : `app-debug.apk` **8,3 Mo**, `app-release.aab` **4,6 Mo**
+— soit une application complète, vocabulaire et images compris, sous les
+limites de Play avec une marge considérable.
+
+Deux avertissements subsistent au build, tous deux inoffensifs : `flatDir`
+provient du gabarit Capacitor lui-même, et « SDK XML version 4 » signale
+seulement que les outils en ligne de commande sont plus récents que le lecteur
+de métadonnées d'AGP.
 
 ## 5. Chaîne de commandes
 
@@ -75,6 +92,16 @@ cd android
 ./gradlew assembleDebug    # apk installable, pour tester sur un appareil
 ./gradlew bundleRelease    # .aab à téléverser sur Play (nécessite la clé)
 ```
+
+Les fichiers produits :
+
+| Commande | Fichier |
+| --- | --- |
+| `assembleDebug` | `android/app/build/outputs/apk/debug/app-debug.apk` |
+| `bundleRelease` | `android/app/build/outputs/bundle/release/app-release.aab` |
+
+Tant qu'aucune clé n'existe, `bundleRelease` produit un paquet **non signé** :
+la chaîne se vérifie, mais Play le refusera. Voir §6.
 
 `npm run android` refuse de continuer s'il trouve `dist/sw.js` : cela signifie
 que le build a été fait sans `CAPACITOR=1`, donc avec le service worker.

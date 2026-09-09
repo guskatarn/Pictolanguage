@@ -7,7 +7,11 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.7.2'
+        // 8.11.1 et non le 8.7.2 du gabarit Capacitor 7 : cette version-là
+        // n'a été testée que jusqu'à compileSdk 35 et le signale à chaque
+        // build, alors que Play impose désormais 36. Exige Gradle 8.13, d'où
+        // la mise à jour du wrapper.
+        classpath 'com.android.tools.build:gradle:8.11.1'
         classpath 'com.google.gms:google-services:4.4.2'
 
         // NOTE: Do not place your application dependencies here; they belong
