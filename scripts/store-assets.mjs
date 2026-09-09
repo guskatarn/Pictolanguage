@@ -13,8 +13,11 @@
  * un profil de démonstration, l'autre pilote l'interface (choisir un onglet,
  * composer une phrase) avant la photo. Voir `pageCapture`.
  *
- * Usage : node scripts/store-assets.mjs [--icones] [--captures]
- *         (sans option : les deux)
+ * Usage : node scripts/store-assets.mjs [--icones] [--captures] [--android]
+ *         (sans option : les trois)
+ *
+ * `--android` remplace les icônes de lanceur et les écrans de lancement du
+ * projet natif, qui portent sinon le logo de Capacitor.
  */
 import { spawn, spawnSync } from 'child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
@@ -51,7 +54,7 @@ const CHROME = trouverChrome()
 let profilTemporaire = 0
 
 /** Photographie une URL à une taille donnée. `echelle` multiplie la définition. */
-function capturer(url, sortie, largeur, hauteur, echelle = 1) {
+function capturer(url, sortie, largeur, hauteur, echelle = 1, { transparent = false } = {}) {
   mkdirSync(dirname(sortie), { recursive: true })
   const res = spawnSync(
     CHROME,
@@ -63,6 +66,9 @@ function capturer(url, sortie, largeur, hauteur, echelle = 1) {
       `--user-data-dir=${join(DIST, `.chrome-${profilTemporaire++}`)}`,
       `--force-device-scale-factor=${echelle}`,
       `--window-size=${largeur},${hauteur}`,
+      // Un premier plan d'icône adaptative doit laisser voir le fond posé par
+      // le lanceur : sans cela Chrome peint du blanc opaque à la place.
+      ...(transparent ? ['--default-background-color=00000000'] : []),
       `--screenshot=${sortie}`,
       '--virtual-time-budget=10000',
       url,
@@ -360,6 +366,128 @@ async function genererCaptures() {
   }
 }
 
+/* ------------------------------------------------------ Ressources Android */
+
+/**
+ * Densités Android et leur facteur d'échelle. Une icône de lanceur fait 48 dp,
+ * un premier plan d'icône adaptative 108 dp ; tout le reste s'en déduit.
+ */
+const DENSITES = [
+  ['mdpi', 1],
+  ['hdpi', 1.5],
+  ['xhdpi', 2],
+  ['xxhdpi', 3],
+  ['xxxhdpi', 4],
+]
+
+/** Écrans de lancement : les dimensions exactes du gabarit Capacitor, remplacées une à une. */
+const SPLASHS = [
+  ['drawable', 480, 320],
+  ['drawable-port-mdpi', 320, 480],
+  ['drawable-port-hdpi', 480, 800],
+  ['drawable-port-xhdpi', 720, 1280],
+  ['drawable-port-xxhdpi', 960, 1600],
+  ['drawable-port-xxxhdpi', 1280, 1920],
+  ['drawable-land-mdpi', 480, 320],
+  ['drawable-land-hdpi', 800, 480],
+  ['drawable-land-xhdpi', 1280, 720],
+  ['drawable-land-xxhdpi', 1600, 960],
+  ['drawable-land-xxxhdpi', 1920, 1280],
+]
+
+/**
+ * Page à dimensions fixes contenant le symbole centré.
+ *
+ * Les dimensions sont posées en pixels sur `body`, jamais en pourcentage :
+ * Chrome refuse toute fenêtre plus étroite qu'environ 500 px et centrerait
+ * alors le symbole par rapport à 500 px, hors du cadre photographié.
+ */
+function pageCentree(largeur, hauteur, tailleSymbole, fond) {
+  return `<!doctype html><meta charset="utf-8">
+<style>html,body{margin:0;padding:0;width:${largeur}px;height:${hauteur}px;overflow:hidden;
+  background:${fond};display:flex;align-items:center;justify-content:center}
+svg{display:block}</style>${symboleSVG({ taille: tailleSymbole, fond: false })}`
+}
+
+/** Même chose, découpée en rond, pour `ic_launcher_round`. */
+function pageRonde(taille) {
+  return `<!doctype html><meta charset="utf-8">
+<style>html,body{margin:0;padding:0;width:${taille}px;height:${taille}px;overflow:hidden;background:transparent}
+.rond{width:${taille}px;height:${taille}px;border-radius:50%;overflow:hidden;
+  background:linear-gradient(135deg,${VIOLET} 0%,${VIOLET_FONCE} 100%);
+  display:flex;align-items:center;justify-content:center}
+svg{display:block}</style>
+<div class="rond">${symboleSVG({ taille: Math.round(taille * 0.78), fond: false })}</div>`
+}
+
+/**
+ * Icônes de lanceur, icônes adaptatives et écrans de lancement du projet
+ * Android. Sans cela, l'application porterait le logo de Capacitor sur l'écran
+ * d'accueil de la tablette et au démarrage.
+ */
+function genererAndroid() {
+  const RES = join(ROOT, 'android', 'app', 'src', 'main', 'res')
+  if (!existsSync(RES)) {
+    throw new Error("Projet Android absent : lancer d'abord `npx cap add android`.")
+  }
+  console.log('Ressources Android :')
+
+  for (const [densite, facteur] of DENSITES) {
+    const taille = Math.round(48 * facteur)
+    capturer(
+      `file://${ecrireGabarit(`__ic-${densite}.html`, pageCentree(taille, taille, Math.round(taille * 0.78), `linear-gradient(135deg,${VIOLET} 0%,${VIOLET_FONCE} 100%)`))}`,
+      join(RES, `mipmap-${densite}`, 'ic_launcher.png'),
+      taille,
+      taille,
+    )
+    capturer(
+      `file://${ecrireGabarit(`__ic-rond-${densite}.html`, pageRonde(taille))}`,
+      join(RES, `mipmap-${densite}`, 'ic_launcher_round.png'),
+      taille,
+      taille,
+      1,
+      { transparent: true },
+    )
+
+    // Premier plan d'icône adaptative : toile de 108 dp dont le lanceur ne
+    // garde que les 72 dp centraux, et rogne le reste selon sa propre forme.
+    // Le symbole est donc cantonné à ces 66 %, sinon la grille serait amputée
+    // sur un lanceur à icônes rondes.
+    const avant = Math.round(108 * facteur)
+    capturer(
+      `file://${ecrireGabarit(`__ic-avant-${densite}.html`, pageCentree(avant, avant, Math.round(avant * 0.62), 'transparent'))}`,
+      join(RES, `mipmap-${densite}`, 'ic_launcher_foreground.png'),
+      avant,
+      avant,
+      1,
+      { transparent: true },
+    )
+  }
+
+  // Fond de l'icône adaptative : le violet de l'application, et non le blanc
+  // du gabarit, sur lequel la bulle blanche du symbole disparaîtrait.
+  writeFileSync(
+    join(RES, 'values', 'ic_launcher_background.xml'),
+    `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">${VIOLET}</color>
+</resources>
+`,
+    'utf8',
+  )
+  console.log(`  ${relative(ROOT, join(RES, 'values', 'ic_launcher_background.xml'))}  ${VIOLET}`)
+
+  for (const [dossier, largeur, hauteur] of SPLASHS) {
+    const symbole = Math.round(Math.min(largeur, hauteur) * 0.34)
+    capturer(
+      `file://${ecrireGabarit(`__splash-${dossier}.html`, pageCentree(largeur, hauteur, symbole, `linear-gradient(135deg,${VIOLET} 0%,${VIOLET_FONCE} 100%)`))}`,
+      join(RES, dossier, 'splash.png'),
+      largeur,
+      hauteur,
+    )
+  }
+}
+
 /* --------------------------------------------------------------- Exécution */
 
 const args = process.argv.slice(2)
@@ -367,9 +495,15 @@ const tout = args.length === 0
 try {
   if (tout || args.includes('--icones')) genererIcones()
   if (tout || args.includes('--captures')) await genererCaptures()
+  if (tout || args.includes('--android')) genererAndroid()
 } finally {
   // Gabarits et profils Chrome jetables : rien de tout cela n'a à survivre.
-  for (const f of ['__icone-192.html', '__icone-512.html', '__icone-store.html', '__feature.html']) {
+  const gabarits = ['__icone-192.html', '__icone-512.html', '__icone-store.html', '__feature.html']
+  for (const [densite] of DENSITES) {
+    gabarits.push(`__ic-${densite}.html`, `__ic-rond-${densite}.html`, `__ic-avant-${densite}.html`)
+  }
+  for (const [dossier] of SPLASHS) gabarits.push(`__splash-${dossier}.html`)
+  for (const f of gabarits) {
     rmSync(join(DIST, f), { force: true })
   }
   for (let i = 0; i < profilTemporaire; i++) {

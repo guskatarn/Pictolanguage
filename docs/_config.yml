@@ -14,3 +14,4 @@ theme: jekyll-theme-minimal
 exclude:
   - AUDIT.md
   - PLAY-CONFORMITE.md
+  - EMPAQUETAGE-ANDROID.md

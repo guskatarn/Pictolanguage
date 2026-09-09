@@ -3,11 +3,23 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/**
+ * Build destiné à l'empaquetage Android (`npm run android`).
+ *
+ * Le service worker y est inutile : tous les fichiers sont déjà locaux dans
+ * l'apk. Pire, il ajouterait un second cache par-dessus celui de l'application
+ * installée, capable de resservir l'ancienne version de l'interface après une
+ * mise à jour par le Play Store — une panne invisible en développement et
+ * pénible à diagnostiquer sur la tablette d'un enfant.
+ */
+const pourCapacitor = process.env.CAPACITOR === '1'
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
+      disable: pourCapacitor,
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {

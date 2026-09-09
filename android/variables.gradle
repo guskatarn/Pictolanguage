@@ -1,0 +1,22 @@
+ext {
+    minSdkVersion = 23
+    // API 36 (Android 16) et non 35 comme le propose le gabarit Capacitor 7 :
+    // depuis le 31 août 2026, Google Play refuse toute nouvelle application qui
+    // vise moins. Conséquence à ne pas oublier : à partir d'Android 15, le
+    // mode bord-à-bord est imposé, d'où `adjustMarginsForEdgeToEdge` dans
+    // capacitor.config.ts — sans quoi la barre violette passerait sous la
+    // barre d'état du système.
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    androidxActivityVersion = '1.9.2'
+    androidxAppCompatVersion = '1.7.0'
+    androidxCoordinatorLayoutVersion = '1.2.0'
+    androidxCoreVersion = '1.15.0'
+    androidxFragmentVersion = '1.8.4'
+    coreSplashScreenVersion = '1.0.1'
+    androidxWebkitVersion = '1.12.1'
+    junitVersion = '4.13.2'
+    androidxJunitVersion = '1.2.1'
+    androidxEspressoCoreVersion = '3.6.1'
+    cordovaAndroidVersion = '10.1.1'
+}
