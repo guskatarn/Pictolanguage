@@ -79,7 +79,7 @@ Le rangement réel est porté par `DEFAULT_PICTOGRAMS[].categoryId` (`defaultPic
 
 `index.html:5` référence `/icon-192.png` et le manifeste déclare `start_url: '/'`. Sur GitHub Pages, le site vit sous `/Pictolanguage/` : l'icône et le point d'entrée pointeraient à la racine du domaine, donc dans le vide. Les images de pictogrammes, elles, sont déjà correctes (`import.meta.env.BASE_URL`). À corriger le jour où l'on héberge l'application elle-même — aujourd'hui Pages ne publie que la politique de confidentialité.
 
-**N12 — Cinq points à vérifier sur appareil dès le premier build Capacitor.** *(étape 1)*
+✅ **N12 — Cinq points à vérifier sur appareil dès le premier build Capacitor.** *(vérifiés sur tablette le 2026-09-09, tous concluants — le point 1 après correction : voir le journal §5)*
 
 Ils ne se voient pas dans un navigateur de bureau, et chacun peut invalider une promesse déjà écrite dans la politique de confidentialité ou dans la fiche store :
 
@@ -94,7 +94,7 @@ Ils ne se voient pas dans un navigateur de bureau, et chacun peut invalider une 
 L'ordre change sur un point décidé par l'éditeur le 2026-09-09 : **l'étape 7 (compte développeur, classification, test fermé) est repoussée en toute fin de projet.** Elle n'apporte rien tant qu'il n'existe pas de binaire à téléverser, et elle engage une vérification d'identité qu'il est inutile d'ouvrir trop tôt.
 
 1. ~~**Lot « corrections de revue »** — N1, N2, N3, N7, N8, puis N5.~~ ✅ **Livré le 2026-09-09**, captures régénérées. 8 tests ajoutés (103 au total).
-2. **Étape 1 — empaquetage Capacitor**, en traitant N10 (versions) comme prérequis et N12 comme protocole de vérification sur appareil. C'est le seul verrou qui reste entre l'application et une publication possible.
+2. ~~**Étape 1 — empaquetage Capacitor**, en traitant N10 (versions) comme prérequis et N12 comme protocole de vérification sur appareil.~~ ✅ **Livrée le 2026-09-09.** Projet Capacitor 7, bundle signé, et les six vérifications sur tablette passées — dont la synthèse vocale, qui a demandé de passer par le moteur du système (§5). Il existe désormais un fichier publiable.
 3. **Lot CAA** — verrou parental (N6, qui lève aussi la réserve de l'étoile), puis positions stables (N4), puis recherche de mot pendant la composition (§4). Ce sont les trois écarts qui séparent encore l'application des outils de référence.
 4. **Étape 7 — Play Console**, en dernier : compte développeur, questionnaire de classification, audience, test fermé, publication.
 

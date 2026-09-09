@@ -146,7 +146,12 @@ vient bien de l'éditeur. C'est ce mécanisme qui permet de récupérer la main 
 la clé de téléversement est un jour compromise — mais il faut alors en faire la
 demande, la reconstitution n'a rien d'automatique.
 
-## 7. À vérifier sur un appareil réel, dans cet ordre
+## 7. Vérifications sur appareil réel
+
+✅ **Toutes passées sur tablette le 2026-09-09**, la première après correction :
+l'application était muette, la WebView n'implémentant pas l'API Web Speech (voir
+le tableau §2). À refaire à l'identique avant chaque téléversement, l'ordre
+important — c'est le protocole, pas une liste de souhaits.
 
 Reprend `AUDIT.md` §0 N12. Ces points ne se voient pas dans un navigateur de
 bureau, et chacun peut invalider une promesse déjà écrite dans la politique de
