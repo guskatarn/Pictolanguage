@@ -64,6 +64,12 @@ export interface PictogramItem {
    * nulle part. Voir `getCategoryStyle`.
    */
   categoryId?: string
+  /**
+   * Masqué par le parent. Le pictogramme est tout de même renvoyé : la grille
+   * laisse sa case vide au lieu de refermer le trou, sans quoi masquer un mot
+   * décalerait tous les suivants et détruirait les repères moteurs de l'enfant.
+   */
+  isHidden?: boolean
 }
 
 export interface Category {

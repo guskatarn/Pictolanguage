@@ -49,7 +49,8 @@ export default function CategoryManager({
     <div className="space-y-2">
       <p className="text-xs text-gray-500 mb-3">
         Réordonnez les catégories avec les flèches, ou décochez les pictogrammes à
-        retirer de la grille de l'enfant.
+        retirer de la grille de l'enfant. Un pictogramme retiré laisse sa case vide :
+        les autres gardent leur place, que l'enfant a appris à reconnaître.
       </p>
 
       {profile.categoryOrder.map((catId, idx) => {

@@ -40,9 +40,14 @@ export default function PictogramCard({
         onClick={() => onClick(picto)}
         aria-label={picto.word}
       >
+        {/*
+          La vignette suit la largeur de sa colonne, plafonnée à la taille
+          choisie : le nombre de colonnes étant désormais fixe, une taille en
+          pixels durs déborderait sur un écran étroit.
+        */}
         <div
-          className="flex items-center justify-center rounded-xl overflow-hidden bg-white"
-          style={{ width: s.img, height: s.img, minWidth: s.img, minHeight: s.img }}
+          className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-white"
+          style={{ maxWidth: s.img, maxHeight: s.img }}
         >
           {failed || !src ? (
             <span style={{ fontSize: s.img * 0.45 }}>🖼️</span>
@@ -50,9 +55,7 @@ export default function PictogramCard({
             <img
               src={src}
               alt={picto.word}
-              width={s.img}
-              height={s.img}
-              className="object-contain"
+              className="h-full w-full object-contain"
               onError={onError}
               loading="lazy"
             />
@@ -66,7 +69,7 @@ export default function PictogramCard({
         */}
         <span
           className={`${s.text} font-bold mt-1.5 text-center leading-tight`}
-          style={{ color: textColor, maxWidth: s.img + 8, wordBreak: 'break-word' }}
+          style={{ color: textColor, maxWidth: '100%', wordBreak: 'break-word' }}
         >
           {picto.word}
         </span>

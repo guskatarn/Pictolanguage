@@ -100,33 +100,46 @@ describe('usePictograms — indicateur de favori dans la grille', () => {
 })
 
 describe('usePictograms — masquage', () => {
-  it('retire de la grille un pictogramme par défaut masqué', () => {
+  it('marque un pictogramme par défaut masqué au lieu de le retirer', () => {
+    // La case doit rester : la retirer décalerait d'un cran tout ce qui suit,
+    // et l'enfant devrait réapprendre où se trouvent ses mots.
     const profile = makeProfile({ hidden: [MANGER] })
     const { result } = renderHook(() => usePictograms(profile))
-    const words = result.current.getPictogramsForCategory('besoins').map((i) => i.word)
-    expect(words).not.toContain('manger')
-    expect(words).toContain('boire')
+    const items = result.current.getPictogramsForCategory('besoins')
+
+    expect(items.find((i) => i.word === 'manger')?.isHidden).toBe(true)
+    expect(items.find((i) => i.word === 'boire')?.isHidden).toBe(false)
   })
 
-  it('retire de la grille un pictogramme personnalisé masqué', () => {
+  it('marque de même un pictogramme personnalisé masqué', () => {
     const custom = makeCustomPictogram({ id: 'c1', word: 'Maman', categoryId: 'besoins' })
     const profile = makeProfile({ hiddenCustom: ['c1'], customPictograms: [custom] })
     const { result } = renderHook(() => usePictograms(profile))
-    expect(
-      result.current.getPictogramsForCategory('besoins').map((i) => i.word),
-    ).not.toContain('Maman')
+    const items = result.current.getPictogramsForCategory('besoins')
+
+    expect(items.find((i) => i.word === 'Maman')?.isHidden).toBe(true)
   })
 
-  it('ne bouscule pas l’ordre des pictogrammes restants', () => {
+  it('ne déplace aucun pictogramme quand on en masque un', () => {
     const complet = renderHook(() => usePictograms(makeProfile()))
     const avant = complet.result.current.getPictogramsForCategory('besoins').map((i) => i.word)
 
     const partiel = renderHook(() => usePictograms(makeProfile({ hidden: [BOIRE] })))
     const apres = partiel.result.current.getPictogramsForCategory('besoins').map((i) => i.word)
 
-    // La planification motrice repose sur des positions stables : masquer un
-    // pictogramme doit retirer une case, jamais réorganiser les autres.
-    expect(apres).toEqual(avant.filter((w) => w !== 'boire'))
+    // Le cœur de N4 : la liste est identique, position pour position. Seul
+    // l'indicateur change, et la grille laisse la case vide.
+    expect(apres).toEqual(avant)
+  })
+
+  it('exclut en revanche les pictogrammes masqués des favoris', () => {
+    // Les favoris sont une vue, pas une disposition apprise : y laisser un
+    // trou n'aurait aucun sens, et un mot écarté par le parent ne doit
+    // réapparaître nulle part.
+    const profile = makeProfile({ favorites: [MANGER, BOIRE], hidden: [MANGER] })
+    const { result } = renderHook(() => usePictograms(profile))
+
+    expect(result.current.getFavoritePictograms().map((i) => i.word)).toEqual(['boire'])
   })
 })
 

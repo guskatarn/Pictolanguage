@@ -286,7 +286,13 @@ export default function App() {
         {/* Pictogram grid */}
         <div className="flex-1 min-w-0 overflow-y-auto" ref={gridRef}>
           <div className={`picto-grid-${activeProfile.settings.pictogramSize}`}>
-            {pictograms.map((picto) => (
+            {pictograms.map((picto) =>
+              picto.isHidden ? (
+                // Case vide, et non case absente : la position de tous les
+                // pictogrammes suivants doit rester celle que l'enfant a
+                // apprise. Invisible et hors du parcours de lecture d'écran.
+                <div key={picto.key} aria-hidden="true" />
+              ) : (
               <PictogramCard
                 key={picto.key}
                 picto={picto}
@@ -298,7 +304,8 @@ export default function App() {
                 // l'étoile d'à côté et n'entendait rien.
                 showFavorite={!estVerrouille}
               />
-            ))}
+              ),
+            )}
             {pictograms.length === 0 && (
               <div
                 className="flex flex-col items-center justify-center py-16 text-gray-400"

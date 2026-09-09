@@ -21,25 +21,46 @@ button {
   font-family: inherit;
 }
 
-.picto-grid-S {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 8px;
-  padding: 10px;
-}
+/* ------------------------------------------------------------------------
+   Grille de pictogrammes : un nombre de colonnes **déclaré**, non déduit.
 
-.picto-grid-M {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 10px;
-  padding: 12px;
-}
+   `repeat(auto-fill, minmax(130px, 1fr))` laissait le navigateur choisir : le
+   nombre de colonnes variait avec la place disponible, et changeait donc quand
+   les onglets passent en colonne à gauche, à la rotation, ou d'un appareil à
+   l'autre. Or en CAA la position d'un pictogramme est un repère moteur : elle
+   doit rester la même d'une séance à l'autre, faute de quoi l'enfant réapprend
+   chaque fois où se trouve « manger ».
 
+   Les paliers ci-dessous reprennent le rendu antérieur sur les formats
+   courants, mais à valeur fixe : pour un appareil et un réglage donnés, la
+   grille ne bouge plus jamais. Deux causes de déplacement subsistent, toutes
+   deux volontaires et le fait de l'adulte : changer le réglage de taille
+   (désormais derrière le code parent) et tourner la tablette.
+   ------------------------------------------------------------------------ */
+
+.picto-grid-S,
+.picto-grid-M,
 .picto-grid-L {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 14px;
-  padding: 14px;
+}
+
+/* Téléphone */
+.picto-grid-S { grid-template-columns: repeat(4, 1fr); gap: 8px;  padding: 10px; }
+.picto-grid-M { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; }
+.picto-grid-L { grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 14px; }
+
+/* Tablette 7 à 8 pouces, et téléphone couché */
+@media (min-width: 600px) {
+  .picto-grid-S { grid-template-columns: repeat(6, 1fr); }
+  .picto-grid-M { grid-template-columns: repeat(5, 1fr); }
+  .picto-grid-L { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Tablette 10 pouces et grands écrans */
+@media (min-width: 1024px) {
+  .picto-grid-S { grid-template-columns: repeat(8, 1fr); }
+  .picto-grid-M { grid-template-columns: repeat(6, 1fr); }
+  .picto-grid-L { grid-template-columns: repeat(5, 1fr); }
 }
 
 /* ------------------------------------------------------------------------

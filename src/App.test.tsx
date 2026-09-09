@@ -113,3 +113,29 @@ describe('App — verrou parental', () => {
     expect(screen.queryByRole('heading', { name: 'disavecmoi' })).not.toBeInTheDocument()
   })
 })
+
+describe('App — positions stables', () => {
+  it('laisse une case vide à la place d’un pictogramme masqué', () => {
+    // Sans cela, masquer « manger » remontait « boire » à sa place, et tout le
+    // reste d'un cran : l'enfant perdait les repères moteurs qu'il avait
+    // construits.
+    const profil = makeProfile()
+    localStorage.setItem(
+      'pictoapp-data',
+      JSON.stringify({ profiles: [profil], activeProfileId: profil.id, parentPin: null }),
+    )
+    const { container, unmount } = render(<App />)
+    const casesAvant = container.querySelector('[class^="picto-grid"]')!.childElementCount
+    unmount()
+
+    const masque = makeProfile({ hidden: [6456] })
+    localStorage.setItem(
+      'pictoapp-data',
+      JSON.stringify({ profiles: [masque], activeProfileId: masque.id, parentPin: null }),
+    )
+    const { container: apres } = render(<App />)
+
+    expect(apres.querySelector('[class^="picto-grid"]')!.childElementCount).toBe(casesAvant)
+    expect(screen.queryByRole('button', { name: 'manger' })).not.toBeInTheDocument()
+  })
+})

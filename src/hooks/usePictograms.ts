@@ -36,10 +36,13 @@ export function usePictograms(activeProfile: UserProfile | null) {
       const category = DEFAULT_CATEGORIES.find((c) => c.id === categoryId)
       if (!category) return []
 
+      // Les pictogrammes masqués ne sont pas retirés de la liste mais marqués :
+      // la grille leur laisse une case vide. Les filtrer ici, comme le faisait
+      // la version précédente, décalait d'un cran tout ce qui suivait — la
+      // fonctionnalité censée alléger la grille déplaçait ce qu'elle laissait.
       const defaultItems: PictogramItem[] = DEFAULT_PICTOGRAMS.filter(
         (p) => p.categoryId === categoryId,
       )
-        .filter((p) => !activeProfile?.hidden.includes(p.id))
         .map((p) => ({
           key: `${categoryId}-${p.id}`,
           word: p.word,
@@ -48,15 +51,12 @@ export function usePictograms(activeProfile: UserProfile | null) {
           isCustom: false,
           isFavorite: activeProfile?.favorites.includes(p.id) ?? false,
           categoryId,
+          isHidden: activeProfile?.hidden.includes(p.id) ?? false,
         }))
 
       const customItems: PictogramItem[] =
         activeProfile?.customPictograms
-          .filter(
-            (c) =>
-              c.categoryId === categoryId &&
-              !activeProfile.hiddenCustom.includes(c.id),
-          )
+          .filter((c) => c.categoryId === categoryId)
           .map((c) => ({
             key: `custom-${c.id}`,
             word: c.word,
@@ -65,6 +65,7 @@ export function usePictograms(activeProfile: UserProfile | null) {
             customId: c.id,
             isFavorite: activeProfile.favoritesCustom.includes(c.id),
             categoryId: c.categoryId,
+            isHidden: activeProfile.hiddenCustom.includes(c.id),
           })) ?? []
 
       return [...defaultItems, ...customItems]
