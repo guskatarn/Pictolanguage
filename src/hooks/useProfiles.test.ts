@@ -257,3 +257,28 @@ describe('useProfiles — jauge d’occupation', () => {
     expect(result.current.usedBytes).toBeGreaterThan(before + 500)
   })
 })
+
+describe('useProfiles — historique', () => {
+  it('n’enregistre pas deux fois la même phrase prononcée coup sur coup', () => {
+    // La phrase restant affichée après lecture, « Parler » est souvent appuyé
+    // plusieurs fois de suite : sans garde, l'historique se remplirait de
+    // doublons qui chasseraient les phrases précédentes.
+    const { result } = renderHook(() => useProfiles())
+    act(() => {
+      result.current.createProfile('Lina', '🦊')
+    })
+    const id = result.current.profiles[0].id
+
+    act(() => result.current.addToHistory(id, ['moi', 'vouloir', 'manger']))
+    act(() => result.current.addToHistory(id, ['moi', 'vouloir', 'manger']))
+    expect(result.current.profiles[0].history).toHaveLength(1)
+
+    act(() => result.current.addToHistory(id, ['moi', 'vouloir', 'boire']))
+    expect(result.current.profiles[0].history).toHaveLength(2)
+
+    // Une phrase déjà dite plus tôt reste enregistrable : seule la répétition
+    // immédiate est écartée.
+    act(() => result.current.addToHistory(id, ['moi', 'vouloir', 'manger']))
+    expect(result.current.profiles[0].history).toHaveLength(3)
+  })
+})

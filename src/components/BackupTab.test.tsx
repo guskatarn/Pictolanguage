@@ -6,7 +6,7 @@ import { STORAGE_BUDGET_BYTES } from '../utils/storage'
 import { ImportOutcome } from '../hooks/useProfiles'
 
 const ok: ImportOutcome = { ok: true, message: '1 profil ajouté.' }
-const ko: ImportOutcome = { ok: false, message: "Ce fichier ne vient pas de PictoLanguage." }
+const ko: ImportOutcome = { ok: false, message: "Ce fichier ne vient pas de disavecmoi." }
 
 function setup(usedBytes = 9 * 1024, outcome: ImportOutcome = ok) {
   const onExport = vi.fn()
@@ -95,7 +95,7 @@ describe('BackupTab — import', () => {
     await user.upload(fileInput(), backupFile())
     await user.click(await screen.findByRole('button', { name: /Ajouter les profils manquants/i }))
 
-    expect(screen.getByRole('status')).toHaveTextContent(/ne vient pas de PictoLanguage/)
+    expect(screen.getByRole('status')).toHaveTextContent(/ne vient pas de disavecmoi/)
     // Le fichier reste sélectionné : l'utilisateur peut tenter l'autre mode.
     expect(screen.getByRole('button', { name: /Remplacer toutes mes données/i })).toBeInTheDocument()
   })

@@ -47,6 +47,7 @@ export function usePictograms(activeProfile: UserProfile | null) {
           imageUrl: getArasaacImageUrl(p.id),
           isCustom: false,
           isFavorite: activeProfile?.favorites.includes(p.id) ?? false,
+          categoryId,
         }))
 
       const customItems: PictogramItem[] =
@@ -63,6 +64,7 @@ export function usePictograms(activeProfile: UserProfile | null) {
             isCustom: true,
             customId: c.id,
             isFavorite: activeProfile.favoritesCustom.includes(c.id),
+            categoryId: c.categoryId,
           })) ?? []
 
       return [...defaultItems, ...customItems]
@@ -97,6 +99,9 @@ export function usePictograms(activeProfile: UserProfile | null) {
           imageUrl: getArasaacImageUrl(p.id),
           isCustom: false,
           isFavorite: true,
+          // La couleur suit le pictogramme jusque dans les favoris : sans
+          // cela, l'onglet repeignait toute la grille en jaune.
+          categoryId: p.categoryId,
         }))
 
       const customs: PictogramItem[] = activeProfile.favoritesCustom
@@ -110,6 +115,7 @@ export function usePictograms(activeProfile: UserProfile | null) {
           isCustom: true,
           customId: c.id,
           isFavorite: true,
+          categoryId: c.categoryId,
         }))
 
       return [...defaults, ...customs]

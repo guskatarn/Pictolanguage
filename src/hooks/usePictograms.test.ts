@@ -129,3 +129,20 @@ describe('usePictograms — masquage', () => {
     expect(apres).toEqual(avant.filter((w) => w !== 'boire'))
   })
 })
+
+describe('usePictograms — catégorie portée par le pictogramme', () => {
+  it('conserve la catégorie d’origine d’un favori', () => {
+    // C'est ce qui permet à la carte de garder sa couleur dans l'onglet
+    // Favoris, au lieu de prendre le jaune de l'onglet.
+    const profile = makeProfile({ favorites: [MANGER] })
+    const { result } = renderHook(() => usePictograms(profile))
+    expect(result.current.getFavoritePictograms()[0].categoryId).toBe('besoins')
+  })
+
+  it('conserve la catégorie de rangement d’un pictogramme personnalisé mis en favori', () => {
+    const custom = makeCustomPictogram({ id: 'c9', categoryId: 'personnes' })
+    const profile = makeProfile({ customPictograms: [custom], favoritesCustom: ['c9'] })
+    const { result } = renderHook(() => usePictograms(profile))
+    expect(result.current.getFavoritePictograms()[0].categoryId).toBe('personnes')
+  })
+})

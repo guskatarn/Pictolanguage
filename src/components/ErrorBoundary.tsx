@@ -32,14 +32,14 @@ export default class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Aucun service de suivi de plantages : l'application ne collecte rien.
     // La console reste le seul canal, suffisant pour un diagnostic assisté.
-    console.error('[PictoLanguage] Erreur non rattrapée :', error, info.componentStack)
+    console.error('[disavecmoi] Erreur non rattrapée :', error, info.componentStack)
   }
 
   private handleExport = () => {
     try {
       downloadBackup(loadData())
     } catch (err) {
-      console.error('[PictoLanguage] Sauvegarde impossible depuis l\'écran d\'erreur :', err)
+      console.error('[disavecmoi] Sauvegarde impossible depuis l\'écran d\'erreur :', err)
     }
   }
 

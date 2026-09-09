@@ -11,7 +11,7 @@ import CoreVocabularyBar from './components/CoreVocabularyBar'
 import HistoryPanel from './components/HistoryPanel'
 import SettingsPanel from './components/SettingsPanel'
 import StorageAlert from './components/StorageAlert'
-import { DEFAULT_CATEGORIES, FAVORITES_CATEGORY, FAVORITES_CATEGORY_ID } from './data/defaultCategories'
+import { DEFAULT_CATEGORIES, FAVORITES_CATEGORY_ID } from './data/defaultCategories'
 import { CORE_VOCABULARY } from './data/coreVocabulary'
 
 export type { InstallPromptEvent }
@@ -77,10 +77,6 @@ export default function App() {
   const pictograms = isFavoritesTab
     ? getFavoritePictograms()
     : getPictogramsForCategory(activeCategory)
-  const activeCategoryData = isFavoritesTab
-    ? FAVORITES_CATEGORY
-    : DEFAULT_CATEGORIES.find((c) => c.id === activeCategory)
-
   const handlePictogramClick = (picto: {
     key: string
     word: string
@@ -120,7 +116,11 @@ export default function App() {
       volume: activeProfile.settings.voiceVolume,
     })
     addToHistory(activeProfile.id, sentence.map((i) => i.word))
-    setSentence([])
+    // La phrase reste affichée après avoir été dite. On redemande sans cesse à
+    // un enfant de répéter — l'adulte n'a pas entendu, ou quelqu'un arrive —
+    // et l'effacer l'obligeait à tout reconstruire pictogramme par
+    // pictogramme. Elle s'efface par « ← Effacer » ou « ✕ Tout », et au
+    // changement de profil.
   }
 
   const handleReplayHistory = (words: string[]) => {
@@ -184,7 +184,7 @@ export default function App() {
         */}
         <button
           onClick={() => setActiveProfileId(null)}
-          className="flex min-w-0 items-center gap-2 bg-white/15 rounded-xl px-3 py-1.5 active:scale-95 transition-transform"
+          className="flex min-h-[44px] min-w-0 items-center gap-2 bg-white/15 rounded-xl px-3 py-1.5 active:scale-95 transition-transform"
           aria-label="Changer de profil"
         >
           <span className="text-xl shrink-0">{activeProfile.avatar}</span>
@@ -205,7 +205,7 @@ export default function App() {
               setShowHistory(true)
               setShowSettings(false)
             }}
-            className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-xl active:scale-95"
+            className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-xl active:scale-95"
             aria-label="Historique"
           >
             📜
@@ -215,7 +215,7 @@ export default function App() {
               setShowSettings(true)
               setShowHistory(false)
             }}
-            className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-xl active:scale-95"
+            className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-xl active:scale-95"
             aria-label="Paramètres"
           >
             ⚙️
@@ -260,8 +260,6 @@ export default function App() {
                 key={picto.key}
                 picto={picto}
                 size={activeProfile.settings.pictogramSize}
-                bgColor={activeCategoryData?.bgColor ?? '#F3F4F6'}
-                borderColor={activeCategoryData?.tabColor ?? '#6B7280'}
                 onClick={handlePictogramClick}
                 onToggleFavorite={handleToggleFavorite}
               />

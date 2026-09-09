@@ -11,6 +11,7 @@ const picto: PictogramItem = {
   imageUrl: '/pictograms/6456.png',
   isCustom: false,
   isFavorite: false,
+  categoryId: 'besoins',
 }
 
 function setup(overrides: Partial<PictogramItem> = {}) {
@@ -20,8 +21,6 @@ function setup(overrides: Partial<PictogramItem> = {}) {
     <PictogramCard
       picto={{ ...picto, ...overrides }}
       size="M"
-      bgColor="#FEF3C7"
-      borderColor="#F59E0B"
       onClick={onClick}
       onToggleFavorite={onToggleFavorite}
     />,
@@ -65,5 +64,21 @@ describe('PictogramCard — étoile de favori', () => {
     // Un bouton imbriqué dans un bouton est invalide et se comporte mal au
     // clavier : l'étoile doit rester un frère de la carte.
     expect(card.querySelector('button')).toBeNull()
+  })
+})
+
+describe('PictogramCard — couleurs', () => {
+  it('écrit le mot dans le ton foncé de la catégorie, pas dans sa couleur d’onglet', () => {
+    // La couleur d'onglet (#F59E0B sur #FEF3C7) donnait 1,9:1 de contraste,
+    // très en dessous du minimum de 4,5:1 ; le ton foncé donne 6,4:1.
+    setup()
+    expect(screen.getByText('manger')).toHaveStyle({ color: '#92400E' })
+  })
+
+  it('prend les couleurs de sa propre catégorie, pas de celle affichée', () => {
+    setup({ categoryId: 'aliments' })
+    expect(screen.getByRole('button', { name: 'manger' })).toHaveStyle({
+      backgroundColor: '#DCFCE7',
+    })
   })
 })

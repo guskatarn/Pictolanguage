@@ -20,7 +20,7 @@ export default function CategoryTabs({ categories, activeId, onSelect }: Props) 
           <button
             key={cat.id}
             onClick={() => onSelect(cat.id)}
-            className="shrink-0 rounded-xl px-4 py-2 font-bold text-sm transition-all duration-150"
+            className="min-h-[44px] shrink-0 rounded-xl px-4 py-2 font-bold text-sm transition-all duration-150"
             style={{
               backgroundColor: isActive ? cat.tabColor : '#e5e7eb',
               color: isActive ? '#fff' : '#374151',

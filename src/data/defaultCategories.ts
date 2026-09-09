@@ -5,8 +5,8 @@ import { Category } from '../types'
  *
  * Il est affiché même vide : le faire apparaître au premier favori décalerait
  * toutes les autres catégories d'un cran, ce qui casserait les repères moteurs
- * que l'enfant s'est construits. Sa liste n'est pas une catégorie de données —
- * `pictogramIds` reste vide, le contenu venant du profil.
+ * que l'enfant s'est construits. Son contenu vient du profil, pas d'une liste
+ * de rangement : c'est une vue (`isView`), pas une catégorie.
  */
 export const FAVORITES_CATEGORY_ID = 'favoris'
 
@@ -16,7 +16,6 @@ export const FAVORITES_CATEGORY: Category = {
   color: '#78350F',
   bgColor: '#FEF9C3',
   tabColor: '#EAB308',
-  pictogramIds: [],
   isView: true,
 }
 
@@ -27,7 +26,6 @@ export const DEFAULT_CATEGORIES: Category[] = [
     color: '#92400E',
     bgColor: '#FEF3C7',
     tabColor: '#F59E0B',
-    pictogramIds: [6456, 6061, 5921, 6479, 19524],
   },
   {
     id: 'emotions',
@@ -35,7 +33,6 @@ export const DEFAULT_CATEGORIES: Category[] = [
     color: '#1E40AF',
     bgColor: '#DBEAFE',
     tabColor: '#3B82F6',
-    pictogramIds: [35547, 35545, 10261, 35537, 35567],
   },
   {
     id: 'aliments',
@@ -43,7 +40,6 @@ export const DEFAULT_CATEGORIES: Category[] = [
     color: '#14532D',
     bgColor: '#DCFCE7',
     tabColor: '#22C55E',
-    pictogramIds: [2494, 32464, 2445, 2462, 8312],
   },
   {
     id: 'actions',
@@ -51,7 +47,6 @@ export const DEFAULT_CATEGORIES: Category[] = [
     color: '#7C2D12',
     bgColor: '#FFEDD5',
     tabColor: '#F97316',
-    pictogramIds: [5441, 8142, 23392, 6564, 6572],
   },
   {
     id: 'lieux',
@@ -59,7 +54,6 @@ export const DEFAULT_CATEGORIES: Category[] = [
     color: '#4C1D95',
     bgColor: '#EDE9FE',
     tabColor: '#8B5CF6',
-    pictogramIds: [3082, 6964, 2859, 6930, 10752],
   },
   {
     id: 'personnes',
@@ -67,7 +61,6 @@ export const DEFAULT_CATEGORIES: Category[] = [
     color: '#831843',
     bgColor: '#FCE7F3',
     tabColor: '#EC4899',
-    pictogramIds: [2458, 31146, 25790, 6556, 6632],
   },
   {
     id: 'objets',
@@ -75,6 +68,29 @@ export const DEFAULT_CATEGORIES: Category[] = [
     color: '#1F2937',
     bgColor: '#F3F4F6',
     tabColor: '#6B7280',
-    pictogramIds: [25191, 9813, 26479, 28099, 2339],
   },
 ]
+
+/**
+ * Couleurs à appliquer à un pictogramme, d'après **sa propre** catégorie.
+ *
+ * Elles étaient auparavant prises sur la catégorie affichée, si bien que
+ * l'onglet Favoris repeignait tout en jaune : un même mot changeait de couleur
+ * selon l'endroit où l'enfant le regardait, ce qui annulait le codage
+ * thématique là où il sert le plus. La couleur suit désormais le pictogramme.
+ *
+ * `color` est le ton foncé de la famille, le seul lisible sur `bgColor` : le
+ * libellé écrit en `tabColor` (couleur de fond d'onglet) tombait entre 1,8 et
+ * 4,4:1 de contraste, sous le minimum de 4,5:1, sur les huit onglets.
+ */
+export function getCategoryStyle(categoryId?: string) {
+  const category =
+    categoryId === FAVORITES_CATEGORY_ID
+      ? FAVORITES_CATEGORY
+      : DEFAULT_CATEGORIES.find((c) => c.id === categoryId)
+  return {
+    bgColor: category?.bgColor ?? '#F3F4F6',
+    borderColor: category?.tabColor ?? '#6B7280',
+    textColor: category?.color ?? '#1F2937',
+  }
+}

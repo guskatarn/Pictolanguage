@@ -58,6 +58,12 @@ export interface PictogramItem {
   isCustom: boolean
   customId?: string
   isFavorite: boolean
+  /**
+   * Catégorie de rangement du pictogramme, d'où viennent ses couleurs.
+   * Absente pour un résultat de recherche ARASAAC, qui n'est encore rangé
+   * nulle part. Voir `getCategoryStyle`.
+   */
+  categoryId?: string
 }
 
 export interface Category {
@@ -66,7 +72,6 @@ export interface Category {
   color: string
   bgColor: string
   tabColor: string
-  pictogramIds: number[]
   /**
    * Vue synthétique plutôt que catégorie de rangement : elle s'affiche comme un
    * onglet mais ne peut pas contenir de pictogramme. Aucune interface ne doit la

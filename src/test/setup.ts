@@ -21,6 +21,13 @@ if (typeof Blob !== 'undefined' && !Blob.prototype.text) {
   }
 }
 
+// jsdom n'implémente pas `Element.scrollTo` : la grille est remontée en haut à
+// chaque changement de catégorie, ce qui faisait échouer tout test cliquant sur
+// un onglet. Une fonction vide suffit — il n'y a rien à faire défiler ici.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = () => {}
+}
+
 beforeEach(() => {
   // Chaque test part d'un stockage vide : les modules lisent `localStorage` au
   // montage, une fuite d'état entre tests les rendrait dépendants de l'ordre.

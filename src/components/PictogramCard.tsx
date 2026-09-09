@@ -1,11 +1,10 @@
 import { PictogramItem, PictogramSize } from '../types'
 import { usePictogramImage } from '../hooks/usePictogramImage'
+import { getCategoryStyle } from '../data/defaultCategories'
 
 interface Props {
   picto: PictogramItem
   size: PictogramSize
-  bgColor: string
-  borderColor: string
   onClick: (picto: PictogramItem) => void
   onToggleFavorite: (picto: PictogramItem) => void
 }
@@ -16,16 +15,12 @@ const sizeMap: Record<PictogramSize, { img: number; text: string; padding: strin
   L: { img: 140, text: 'text-base', padding: 'p-2.5' },
 }
 
-export default function PictogramCard({
-  picto,
-  size,
-  bgColor,
-  borderColor,
-  onClick,
-  onToggleFavorite,
-}: Props) {
+export default function PictogramCard({ picto, size, onClick, onToggleFavorite }: Props) {
   const { src, failed, onError } = usePictogramImage(picto.imageUrl, picto.arasaacId)
   const s = sizeMap[size]
+  // Les couleurs viennent de la catégorie du pictogramme, pas de l'onglet
+  // affiché : un mot garde la même couleur partout, y compris dans les favoris.
+  const { bgColor, borderColor, textColor } = getCategoryStyle(picto.categoryId)
 
   return (
     // L'étoile est un frère du bouton principal, pas un enfant : un bouton
@@ -55,9 +50,15 @@ export default function PictogramCard({
             />
           )}
         </div>
+        {/*
+          Le libellé est écrit dans le ton foncé de la catégorie, pas dans sa
+          couleur d'onglet : celle-ci, prévue pour un fond d'onglet, tombait
+          entre 1,8 et 4,4:1 de contraste sur le fond clair de la carte, sous
+          le minimum de 4,5:1 — sur les huit onglets.
+        */}
         <span
           className={`${s.text} font-bold mt-1.5 text-center leading-tight`}
-          style={{ color: borderColor, maxWidth: s.img + 8, wordBreak: 'break-word' }}
+          style={{ color: textColor, maxWidth: s.img + 8, wordBreak: 'break-word' }}
         >
           {picto.word}
         </span>

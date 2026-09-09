@@ -108,6 +108,15 @@ button {
     min-height: 56px;
   }
 
+  /* Les trois commandes passent en rangée. Empilées, elles imposaient à la
+     barre la hauteur de deux boutons ; côte à côte, elles gardent leurs 44 px
+     de cible tactile et la barre est plus courte qu'avec les anciens boutons
+     de 28 px. La hauteur récupérée revient à la grille. */
+  .sentence-bar .sentence-actions {
+    flex-direction: row;
+    align-items: center;
+  }
+
   .core-bar {
     padding-top: 0.125rem;
     padding-bottom: 0.125rem;

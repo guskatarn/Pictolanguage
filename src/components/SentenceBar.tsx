@@ -63,12 +63,17 @@ export default function SentenceBar({ items, onRemoveItem, onClearAll, onSpeak, 
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-col gap-1.5 shrink-0">
+        {/*
+          Cibles tactiles : 44 px au minimum (WCAG 2.5.5), contre 28 px
+          auparavant pour « Effacer » et « Tout ». En paysage sur écran bas,
+          `index.css` met ces boutons en rangée plutôt que de les rétrécir :
+          la barre y est même plus courte qu'avant.
+        */}
+        <div className="sentence-actions flex flex-col gap-1.5 shrink-0">
           <button
             onClick={onSpeak}
             disabled={isEmpty}
-            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-white text-sm transition-all ${
+            className={`flex min-h-[44px] items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-white text-sm transition-all ${
               isSpeaking ? 'speaking-anim bg-green-600' : 'bg-green-500 active:scale-95'
             } disabled:opacity-40 disabled:pointer-events-none`}
             aria-label="Parler"
@@ -76,11 +81,11 @@ export default function SentenceBar({ items, onRemoveItem, onClearAll, onSpeak, 
             <span className="text-xl">🔊</span>
             <span>Parler</span>
           </button>
-          <div className="flex gap-1">
+          <div className="flex flex-1 gap-1">
             <button
               onClick={() => items.length > 0 && onRemoveItem(items[items.length - 1].key)}
               disabled={isEmpty}
-              className="flex-1 bg-amber-100 text-amber-800 rounded-lg px-2 py-1.5 text-xs font-bold active:scale-95 disabled:opacity-40"
+              className="min-h-[44px] flex-1 whitespace-nowrap bg-amber-100 text-amber-800 rounded-lg px-2 py-1.5 text-xs font-bold active:scale-95 disabled:opacity-40"
               aria-label="Effacer le dernier"
             >
               ← Effacer
@@ -88,7 +93,7 @@ export default function SentenceBar({ items, onRemoveItem, onClearAll, onSpeak, 
             <button
               onClick={onClearAll}
               disabled={isEmpty}
-              className="flex-1 bg-red-100 text-red-700 rounded-lg px-2 py-1.5 text-xs font-bold active:scale-95 disabled:opacity-40"
+              className="min-h-[44px] flex-1 whitespace-nowrap bg-red-100 text-red-700 rounded-lg px-2 py-1.5 text-xs font-bold active:scale-95 disabled:opacity-40"
               aria-label="Tout effacer"
             >
               ✕ Tout

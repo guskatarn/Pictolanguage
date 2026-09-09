@@ -128,9 +128,21 @@ export function useProfiles() {
     [data, persist],
   )
 
+  /**
+   * La phrase restant affichée après lecture (elle sert souvent deux ou trois
+   * fois de suite), « Parler » est appuyé plusieurs fois sur la même phrase.
+   * L'enregistrer à chaque fois remplirait l'historique de doublons et en
+   * chasserait les phrases précédentes, qui sont justement ce qu'on vient y
+   * rechercher.
+   */
   const addToHistory = useCallback(
     (profileId: string, words: string[]) => {
       if (!words.length) return
+      const profile = data.profiles.find((p) => p.id === profileId)
+      const last = profile?.history[0]
+      if (last && last.words.length === words.length && last.words.every((w, i) => w === words[i])) {
+        return
+      }
       const entry: HistoryEntry = {
         id: crypto.randomUUID(),
         words,

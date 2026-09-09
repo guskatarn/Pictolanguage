@@ -144,7 +144,7 @@ describe('parseBackup', () => {
 
   it('donne un message lisible par un parent, pas une trace technique', () => {
     expect(() => parseBackup(JSON.stringify({ app: 'autre', version: 1, data }))).toThrow(
-      /ne vient pas de PictoLanguage/,
+      /ne vient pas de disavecmoi/,
     )
   })
 

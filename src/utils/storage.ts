@@ -152,12 +152,15 @@ export function parseBackup(raw: string): StoredData {
   try {
     parsed = JSON.parse(raw)
   } catch {
-    throw new Error("Fichier illisible : ce n'est pas une sauvegarde PictoLanguage.")
+    throw new Error("Fichier illisible : ce n'est pas une sauvegarde disavecmoi.")
   }
 
+  // Le marqueur garde l'ancien nom, contrairement aux messages ci-dessus : le
+  // changer rendrait irrécupérables les sauvegardes déjà exportées, à moins
+  // d'accepter les deux valeurs à l'import.
   const candidate = parsed as Partial<BackupFile>
   if (candidate?.app !== 'pictolanguage') {
-    throw new Error("Ce fichier ne vient pas de PictoLanguage.")
+    throw new Error("Ce fichier ne vient pas de disavecmoi.")
   }
   if (typeof candidate.version !== 'number' || candidate.version > BACKUP_VERSION) {
     throw new Error(
@@ -172,7 +175,7 @@ export function parseBackup(raw: string): StoredData {
 }
 
 export function backupFilename(): string {
-  return `pictolanguage-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`
+  return `disavecmoi-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`
 }
 
 /** Déclenche le téléchargement du fichier de sauvegarde. */
