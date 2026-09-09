@@ -258,13 +258,15 @@ function pageCapture(indexHtml, scene) {
   var etapes = ${JSON.stringify(SCENES[scene])};
   // La bannière « Installer » ne peut pas apparaître dans l'application
   // publiée sur Play : elle vient de l'événement beforeinstallprompt, propre au
-  // navigateur. La montrer sur la fiche store induirait en erreur.
-  setTimeout(function () {
+  // navigateur. La montrer sur la fiche store induirait en erreur. Le retrait
+  // est répété plutôt que fait une fois : l'événement arrive à un moment
+  // variable, et un nettoyage ponctuel laissait passer une capture sur trois.
+  setInterval(function () {
     var bandeau = Array.prototype.find.call(document.querySelectorAll('button'), function (b) {
       return b.textContent.indexOf('Installer') !== -1;
     });
     if (bandeau) bandeau.remove();
-  }, 500);
+  }, 150);
   // Une scène qui échoue doit produire une capture manifestement fausse plutôt
   // qu'une copie silencieuse de l'écran d'accueil.
   function echouer(message) {
