@@ -11,10 +11,18 @@ interface Props {
   showFavorite?: boolean
 }
 
-const sizeMap: Record<PictogramSize, { img: number; text: string; padding: string }> = {
-  S: { img: 80, text: 'text-xs', padding: 'p-1.5' },
-  M: { img: 110, text: 'text-sm', padding: 'p-2' },
-  L: { img: 140, text: 'text-base', padding: 'p-2.5' },
+/**
+ * Le réglage de taille ne dimensionne plus la vignette : il commande le nombre
+ * de colonnes de la grille (voir `index.css`), et la vignette remplit la
+ * colonne qui lui échoit. Moins de colonnes donne donc de plus grandes images,
+ * ce qui est exactement ce qu'on attend de « L » — alors qu'une taille en
+ * pixels durs laissait, sur une tablette de 10 pouces, une petite image perdue
+ * au milieu d'une carte deux fois plus large.
+ */
+const sizeMap: Record<PictogramSize, { text: string; padding: string }> = {
+  S: { text: 'text-xs', padding: 'p-1.5' },
+  M: { text: 'text-sm', padding: 'p-2' },
+  L: { text: 'text-base', padding: 'p-2.5' },
 }
 
 export default function PictogramCard({
@@ -40,17 +48,9 @@ export default function PictogramCard({
         onClick={() => onClick(picto)}
         aria-label={picto.word}
       >
-        {/*
-          La vignette suit la largeur de sa colonne, plafonnée à la taille
-          choisie : le nombre de colonnes étant désormais fixe, une taille en
-          pixels durs déborderait sur un écran étroit.
-        */}
-        <div
-          className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-white"
-          style={{ maxWidth: s.img, maxHeight: s.img }}
-        >
+        <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-white">
           {failed || !src ? (
-            <span style={{ fontSize: s.img * 0.45 }}>🖼️</span>
+            <span className="text-4xl">🖼️</span>
           ) : (
             <img
               src={src}
