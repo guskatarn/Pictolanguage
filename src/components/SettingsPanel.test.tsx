@@ -32,7 +32,6 @@ function setup(categories: Category[]) {
       onAddCustomPictogram={onAddCustomPictogram}
       onRemoveCustomPictogram={() => {}}
       onToggleHide={() => {}}
-      onToggleHideCustom={() => {}}
       searchArasaac={async () => [RESULTAT]}
       usedBytes={0}
       onExportData={() => {}}

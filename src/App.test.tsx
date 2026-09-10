@@ -2,17 +2,20 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
-import { makeProfile } from './test/factories'
+import { makePageFavoris, makeProfile } from './test/factories'
+import { TABLEAU_TLA } from './data/tableauTla'
+import { nombreDeSlots } from './utils/pages'
+import { PALETTE_FITZGERALD } from './data/classesGrammaticales'
 
 /**
  * Amorce l'application avec un profil actif : sans cela, `App` n'affiche que le
  * sélecteur de profils et rien de la grille n'est atteignable.
  */
 function seedProfile(parentPin: string | null = null) {
-  const profile = makeProfile({ categoryOrder: ['besoins', 'emotions'] })
+  const profile = makeProfile({ ordrePages: ['besoins', 'emotions'] })
   localStorage.setItem(
     'pictoapp-data',
-    JSON.stringify({ profiles: [profile], activeProfileId: profile.id, parentPin }),
+    JSON.stringify({ schemaVersion: 2, profiles: [profile], activeProfileId: profile.id, parentPin }),
   )
   return profile
 }
@@ -51,24 +54,32 @@ describe('App — la phrase composée', () => {
 })
 
 describe('App — couleur des pictogrammes', () => {
-  it("garde la couleur de la catégorie d'origine dans l'onglet Favoris", async () => {
-    // La couleur venait de l'onglet affiché : l'onglet Favoris repeignait donc
-    // toute la grille en jaune, et un même mot changeait de couleur selon
-    // l'endroit où l'enfant le regardait.
-    const profile = makeProfile({ favorites: [6456] })
+  /**
+   * La couleur venait autrefois de l'onglet affiché : l'onglet Favoris
+   * repeignait toute la grille en jaune, et un même mot changeait de couleur
+   * selon l'endroit où l'enfant le regardait. Elle suit désormais le mot, dans
+   * les deux modes de codage.
+   */
+  it.each([
+    ['grammatical', PALETTE_FITZGERALD.verbe.fond],
+    ['thematique', '#FEF3C7'],
+  ] as const)('garde en mode %s la couleur du mot dans l’onglet Favoris', async (mode, fond) => {
+    const base = makeProfile()
+    const profile = makeProfile({
+      pageFavoris: makePageFavoris('besoins#0'),
+      settings: { ...base.settings, modeCouleur: mode },
+    })
     localStorage.setItem(
       'pictoapp-data',
-      JSON.stringify({ profiles: [profile], activeProfileId: profile.id, parentPin: null }),
+      JSON.stringify({ schemaVersion: 2, profiles: [profile], activeProfileId: profile.id, parentPin: null }),
     )
     const user = userEvent.setup()
     render(<App />)
 
-    const dansBesoins = screen.getByRole('button', { name: 'manger' })
-    expect(dansBesoins).toHaveStyle({ backgroundColor: '#FEF3C7' })
+    expect(screen.getByRole('button', { name: 'manger' })).toHaveStyle({ backgroundColor: fond })
 
     await user.click(screen.getByRole('button', { name: /Favoris/ }))
-    const dansFavoris = screen.getByRole('button', { name: 'manger' })
-    expect(dansFavoris).toHaveStyle({ backgroundColor: '#FEF3C7' })
+    expect(screen.getByRole('button', { name: 'manger' })).toHaveStyle({ backgroundColor: fond })
   })
 })
 
@@ -115,27 +126,62 @@ describe('App — verrou parental', () => {
 })
 
 describe('App — positions stables', () => {
-  it('laisse une case vide à la place d’un pictogramme masqué', () => {
+  function monterAvec(profil: ReturnType<typeof makeProfile>) {
+    localStorage.setItem(
+      'pictoapp-data',
+      JSON.stringify({
+        schemaVersion: 2,
+        profiles: [profil],
+        activeProfileId: profil.id,
+        parentPin: null,
+      }),
+    )
+    return render(<App />)
+  }
+
+  /** Position de chaque case de la grille, un libellé ou `null` pour un trou. */
+  function dispositionDe(container: HTMLElement): (string | null)[] {
+    const grille = container.querySelector('.picto-grid')!
+    return [...grille.children].map((c) => c.getAttribute('aria-label'))
+  }
+
+  it('rend la grille à la géométrie déclarée par le tableau', () => {
+    // La grille ne se reforme plus selon la place disponible : son nombre de
+    // cases vient des données, et c'est ce qui rend les positions comparables
+    // d'un appareil à l'autre.
+    const { container } = monterAvec(makeProfile())
+    expect(container.querySelector('.picto-grid')!.children).toHaveLength(
+      nombreDeSlots(TABLEAU_TLA.geometrie),
+    )
+  })
+
+  it('laisse une case vide à la place d’un pictogramme masqué, sans rien décaler', () => {
     // Sans cela, masquer « manger » remontait « boire » à sa place, et tout le
     // reste d'un cran : l'enfant perdait les repères moteurs qu'il avait
     // construits.
-    const profil = makeProfile()
-    localStorage.setItem(
-      'pictoapp-data',
-      JSON.stringify({ profiles: [profil], activeProfileId: profil.id, parentPin: null }),
-    )
-    const { container, unmount } = render(<App />)
-    const casesAvant = container.querySelector('[class^="picto-grid"]')!.childElementCount
+    const { container, unmount } = monterAvec(makeProfile())
+    const avant = dispositionDe(container)
     unmount()
 
-    const masque = makeProfile({ hidden: [6456] })
-    localStorage.setItem(
-      'pictoapp-data',
-      JSON.stringify({ profiles: [masque], activeProfileId: masque.id, parentPin: null }),
-    )
-    const { container: apres } = render(<App />)
+    const { container: apres } = monterAvec(makeProfile({ slotsMasques: ['besoins#0'] }))
+    const dispo = dispositionDe(apres)
 
-    expect(apres.querySelector('[class^="picto-grid"]')!.childElementCount).toBe(casesAvant)
     expect(screen.queryByRole('button', { name: 'manger' })).not.toBeInTheDocument()
+    // La case de « manger » est vide ; toutes les autres sont inchangées.
+    expect(dispo[0]).toBeNull()
+    expect(dispo.slice(1)).toEqual(avant.slice(1))
+  })
+
+  it('garde le même nombre de colonnes quel que soit le réglage de taille', () => {
+    // Le réglage commande désormais la taille d'une case, plus le nombre de
+    // colonnes : changer de taille ne doit plus réorganiser la grille.
+    const { container, unmount } = monterAvec(makeProfile())
+    const petit = dispositionDe(container)
+    unmount()
+
+    const { container: grand } = monterAvec(
+      makeProfile({ settings: { ...makeProfile().settings, tailleCase: 'L' } }),
+    )
+    expect(dispositionDe(grand)).toEqual(petit)
   })
 })

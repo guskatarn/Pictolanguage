@@ -1,10 +1,12 @@
-import { PictogramItem, PictogramSize } from '../types'
+import { PictogramItem, ProfileSettings, TailleCase } from '../types'
 import { usePictogramImage } from '../hooks/usePictogramImage'
-import { getCategoryStyle } from '../data/defaultCategories'
+import { getStyleCase } from '../data/classesGrammaticales'
 
 interface Props {
   picto: PictogramItem
-  size: PictogramSize
+  size: TailleCase
+  /** Codage couleur choisi par le parent : grammatical ou thématique. */
+  modeCouleur: ProfileSettings['modeCouleur']
   onClick: (picto: PictogramItem) => void
   onToggleFavorite: (picto: PictogramItem) => void
   /** Retirée hors mode parent : l'enfant ne doit pas pouvoir la toucher. */
@@ -12,14 +14,12 @@ interface Props {
 }
 
 /**
- * Le réglage de taille ne dimensionne plus la vignette : il commande le nombre
- * de colonnes de la grille (voir `index.css`), et la vignette remplit la
- * colonne qui lui échoit. Moins de colonnes donne donc de plus grandes images,
- * ce qui est exactement ce qu'on attend de « L » — alors qu'une taille en
- * pixels durs laissait, sur une tablette de 10 pouces, une petite image perdue
- * au milieu d'une carte deux fois plus large.
+ * Taille du libellé et des marges, la vignette remplissant la case qui lui
+ * échoit. La géométrie de la grille appartient désormais au tableau : c'est la
+ * **case** qui grandit avec ce réglage, et la grille défile quand elle ne tient
+ * plus à l'écran, plutôt que de se reformer sur moins de colonnes.
  */
-const sizeMap: Record<PictogramSize, { text: string; padding: string }> = {
+const sizeMap: Record<TailleCase, { text: string; padding: string }> = {
   S: { text: 'text-xs', padding: 'p-1.5' },
   M: { text: 'text-sm', padding: 'p-2' },
   L: { text: 'text-base', padding: 'p-2.5' },
@@ -28,27 +28,38 @@ const sizeMap: Record<PictogramSize, { text: string; padding: string }> = {
 export default function PictogramCard({
   picto,
   size,
+  modeCouleur,
   onClick,
   onToggleFavorite,
   showFavorite = true,
 }: Props) {
   const { src, failed, onError } = usePictogramImage(picto.imageUrl, picto.arasaacId)
   const s = sizeMap[size]
-  // Les couleurs viennent de la catégorie du pictogramme, pas de l'onglet
-  // affiché : un mot garde la même couleur partout, y compris dans les favoris.
-  const { bgColor, borderColor, textColor } = getCategoryStyle(picto.categoryId)
+  // Les couleurs viennent d'une propriété du pictogramme — sa classe
+  // grammaticale ou son thème selon le mode —, jamais de la page affichée : un
+  // mot garde la même couleur partout, y compris dans les favoris.
+  const { bgColor, borderColor, textColor } = getStyleCase(picto, modeCouleur)
 
   return (
     // L'étoile est un frère du bouton principal, pas un enfant : un bouton
     // imbriqué dans un bouton est invalide et se comporte mal au clavier.
-    <div className="relative w-full">
+    // `h-full` sur la carte comme sur le bouton : les rangées de la grille ont
+    // une hauteur fixe (voir `index.css`), et une carte qui la dépasserait
+    // déborderait sur sa voisine du dessous.
+    <div className="relative h-full w-full">
       <button
-        className={`picto-card flex flex-col items-center rounded-2xl border-2 w-full ${s.padding}`}
+        className={`picto-card flex h-full w-full flex-col items-center rounded-2xl border-2 ${s.padding}`}
         style={{ backgroundColor: bgColor, borderColor }}
         onClick={() => onClick(picto)}
         aria-label={picto.word}
       >
-        <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-white">
+        {/*
+          La vignette prend la hauteur qui reste une fois le libellé placé,
+          plutôt qu'un carré strict : la case a une hauteur imposée, et un
+          `aspect-square` la ferait déborder dès que le libellé passe sur deux
+          lignes.
+        */}
+        <div className="flex w-full min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-white">
           {failed || !src ? (
             <span className="text-4xl">🖼️</span>
           ) : (
@@ -68,8 +79,8 @@ export default function PictogramCard({
           le minimum de 4,5:1 — sur les huit onglets.
         */}
         <span
-          className={`${s.text} font-bold mt-1.5 text-center leading-tight`}
-          style={{ color: textColor, maxWidth: '100%', wordBreak: 'break-word' }}
+          className={`${s.text} mt-1 w-full shrink-0 truncate text-center font-bold leading-tight`}
+          style={{ color: textColor }}
         >
           {picto.word}
         </span>

@@ -4,8 +4,9 @@ import { PictogramEntry } from '../types'
  * Vocabulaire "core" : les mots fonctionnels les plus fréquents en CAA
  * (communication alternative et améliorée), toujours accessibles quelle
  * que soit la catégorie affichée, pour permettre de construire des phrases
- * spontanées sans naviguer entre onglets. Principe standard des outils de
- * CAA professionnels (LAMP, PODD, Proloquo2Go...).
+ * spontanées sans naviguer entre onglets. Principe générique et ancien de la
+ * CAA : garder accessible en permanence le vocabulaire fonctionnel, celui qui
+ * sert dans presque toutes les phrases.
  *
  * Sélection volontairement courte (10 mots) pour rester scannable en un
  * coup d'œil. Les ids sont des pictogrammes ARASAAC réels.

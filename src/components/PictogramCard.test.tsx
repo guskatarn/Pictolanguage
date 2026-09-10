@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PictogramCard from './PictogramCard'
-import { PictogramItem } from '../types'
+import { PictogramItem, ProfileSettings } from '../types'
+import { PALETTE_FITZGERALD, PALETTE_NEUTRE } from '../data/classesGrammaticales'
 
 const picto: PictogramItem = {
   key: 'besoins-6456',
@@ -12,20 +13,25 @@ const picto: PictogramItem = {
   isCustom: false,
   isFavorite: false,
   categoryId: 'besoins',
+  classeGrammaticale: 'verbe',
 }
 
-function setup(overrides: Partial<PictogramItem> = {}) {
+function setup(
+  overrides: Partial<PictogramItem> = {},
+  modeCouleur: ProfileSettings['modeCouleur'] = 'grammatical',
+) {
   const onClick = vi.fn()
   const onToggleFavorite = vi.fn()
-  render(
+  const { unmount } = render(
     <PictogramCard
       picto={{ ...picto, ...overrides }}
       size="M"
+      modeCouleur={modeCouleur}
       onClick={onClick}
       onToggleFavorite={onToggleFavorite}
     />,
   )
-  return { onClick, onToggleFavorite, user: userEvent.setup() }
+  return { onClick, onToggleFavorite, unmount, user: userEvent.setup() }
 }
 
 describe('PictogramCard — étoile de favori', () => {
@@ -68,17 +74,48 @@ describe('PictogramCard — étoile de favori', () => {
 })
 
 describe('PictogramCard — couleurs', () => {
-  it('écrit le mot dans le ton foncé de la catégorie, pas dans sa couleur d’onglet', () => {
-    // La couleur d'onglet (#F59E0B sur #FEF3C7) donnait 1,9:1 de contraste,
-    // très en dessous du minimum de 4,5:1 ; le ton foncé donne 6,4:1.
+  it('colore selon la classe grammaticale en codage Fitzgerald', () => {
     setup()
-    expect(screen.getByText('manger')).toHaveStyle({ color: '#92400E' })
+    expect(screen.getByRole('button', { name: 'manger' })).toHaveStyle({
+      backgroundColor: PALETTE_FITZGERALD.verbe.fond,
+    })
   })
 
-  it('prend les couleurs de sa propre catégorie, pas de celle affichée', () => {
-    setup({ categoryId: 'aliments' })
+  it('colore selon le thème quand le parent a choisi ce mode', () => {
+    setup({}, 'thematique')
     expect(screen.getByRole('button', { name: 'manger' })).toHaveStyle({
-      backgroundColor: '#DCFCE7',
+      backgroundColor: '#FEF3C7',
+    })
+  })
+
+  /**
+   * L'invariant, dans les deux modes : la couleur vient d'une propriété du
+   * **pictogramme**, jamais de la page affichée. C'est ce qui manquait quand
+   * l'onglet Favoris repeignait toute la grille en jaune, et un même mot
+   * changeait de couleur selon l'endroit où l'enfant le regardait.
+   */
+  it('ne dépend d’aucune page : deux mots de classes différentes se distinguent', () => {
+    const { unmount } = setup()
+    const verbe = screen.getByRole('button', { name: 'manger' }).style.backgroundColor
+    unmount()
+
+    setup({ word: 'pomme', classeGrammaticale: 'nom' })
+    const nom = screen.getByRole('button', { name: 'pomme' }).style.backgroundColor
+    expect(nom).not.toBe(verbe)
+  })
+
+  it('écrit le mot dans le ton foncé de sa classe, pas dans sa couleur de bordure', () => {
+    // La couleur de bordure sur le fond clair donnait de 1,8 à 4,4:1 de
+    // contraste, sous le minimum de 4,5:1. Le ton foncé est le seul lisible ;
+    // `classesGrammaticales.test.ts` mesure chaque paire de la palette.
+    setup()
+    expect(screen.getByText('manger')).toHaveStyle({ color: PALETTE_FITZGERALD.verbe.texte })
+  })
+
+  it('retombe sur le neutre pour un mot ajouté par un parent, sans classe', () => {
+    setup({ classeGrammaticale: undefined, isCustom: true })
+    expect(screen.getByRole('button', { name: 'manger' })).toHaveStyle({
+      backgroundColor: PALETTE_NEUTRE.fond,
     })
   })
 })

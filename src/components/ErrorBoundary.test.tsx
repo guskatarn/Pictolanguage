@@ -70,7 +70,12 @@ describe('ErrorBoundary', () => {
   })
 
   it('permet de récupérer ses données alors que le reste de l’application est inaccessible', async () => {
-    const stored: StoredData = { profiles: [makeProfile()], activeProfileId: 'p1', parentPin: null }
+    const stored: StoredData = {
+      schemaVersion: 2,
+      profiles: [makeProfile()],
+      activeProfileId: 'p1',
+      parentPin: null,
+    }
     saveData(stored)
 
     const parts: string[] = []

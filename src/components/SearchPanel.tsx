@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { PictogramItem } from '../types'
+import { PictogramItem, ProfileSettings } from '../types'
 import PictogramCard from './PictogramCard'
 
 interface Props {
   onSearch: (requete: string) => PictogramItem[]
   onSelect: (picto: PictogramItem) => void
   onClose: () => void
+  /** Repris de la grille : un mot doit garder sa couleur jusque dans la recherche. */
+  modeCouleur: ProfileSettings['modeCouleur']
 }
 
 /**
@@ -22,7 +24,7 @@ interface Props {
  * pas l'ajout d'un pictogramme depuis la banque ARASAAC, qui reste dans les
  * réglages, derrière le code parent.
  */
-export default function SearchPanel({ onSearch, onSelect, onClose }: Props) {
+export default function SearchPanel({ onSearch, onSelect, onClose, modeCouleur }: Props) {
   const [requete, setRequete] = useState('')
   const resultats = onSearch(requete)
   const chercheDejaQuelqueChose = requete.trim().length > 0
@@ -72,6 +74,7 @@ export default function SearchPanel({ onSearch, onSelect, onClose }: Props) {
                   key={picto.key}
                   picto={picto}
                   size="S"
+              modeCouleur={modeCouleur}
                   onClick={() => {
                     onSelect(picto)
                     onClose()

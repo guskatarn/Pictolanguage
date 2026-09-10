@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { renderHook } from '@testing-library/react'
 import SearchPanel from './SearchPanel'
 import { usePictograms } from '../hooks/usePictograms'
-import { makeProfile, makeCustomPictogram } from '../test/factories'
+import { makeProfile, makeMotPerso } from '../test/factories'
 
 /** Branche le panneau sur la vraie recherche, pour éprouver les deux ensemble. */
 function monter(profil = makeProfile()) {
@@ -16,6 +16,7 @@ function monter(profil = makeProfile()) {
       onSearch={result.current.searchPictograms}
       onSelect={onSelect}
       onClose={onClose}
+      modeCouleur="grammatical"
     />,
   )
   return { onSelect, onClose, user: userEvent.setup() }
@@ -40,15 +41,19 @@ describe('SearchPanel', () => {
   })
 
   it('trouve aussi les pictogrammes personnalisés', async () => {
-    const custom = makeCustomPictogram({ id: 'c1', word: 'Mamie', categoryId: 'personnes' })
-    const { user } = monter(makeProfile({ customPictograms: [custom] }))
+    const { user } = monter(
+      makeProfile({
+        lexiquePerso: [makeMotPerso({ id: 'c1', mot: 'Mamie' })],
+        placements: { 'personnes#5': 'c1' },
+      }),
+    )
     await user.type(screen.getByLabelText('Mot à chercher'), 'mami')
     expect(screen.getByRole('button', { name: 'Mamie' })).toBeInTheDocument()
   })
 
   it('n’exhume pas un pictogramme masqué par le parent', async () => {
     // Un mot écarté ne doit ressurgir par aucun chemin, la recherche comprise.
-    const { user } = monter(makeProfile({ hidden: [6456] }))
+    const { user } = monter(makeProfile({ slotsMasques: ['besoins#0'] }))
     await user.type(screen.getByLabelText('Mot à chercher'), 'manger')
     expect(screen.queryByRole('button', { name: 'manger' })).not.toBeInTheDocument()
     expect(screen.getByText(/Aucun pictogramme/)).toBeInTheDocument()

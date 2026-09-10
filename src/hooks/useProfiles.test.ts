@@ -13,7 +13,7 @@ function simulateFullStorage() {
 
 function backupWith(profiles: Partial<UserProfile>[]): string {
   return JSON.stringify(
-    buildBackup({ profiles, activeProfileId: null } as unknown as StoredData),
+    buildBackup({ schemaVersion: 2, profiles, activeProfileId: null } as unknown as StoredData),
   )
 }
 
@@ -51,17 +51,18 @@ describe('useProfiles — quota saturé', () => {
     simulateFullStorage()
     let accepted: boolean | undefined
     act(() => {
-      accepted = result.current.addCustomPictogram(profileId, {
-        word: 'chien',
-        imageUrl: 'data:image/webp;base64,AAAA',
-        categoryId: 'besoins',
-      })
+      accepted = result.current.ajouterMotPerso(
+        profileId,
+        'chien',
+        'data:image/webp;base64,AAAA',
+        'besoins',
+      )
     })
 
     // C'est le cœur de la correction : l'ajout est refusé, l'écran n'affiche
     // donc jamais un pictogramme qui n'existe pas dans le stockage.
     expect(accepted).toBe(false)
-    expect(result.current.activeProfile!.customPictograms).toHaveLength(0)
+    expect(result.current.activeProfile!.lexiquePerso).toHaveLength(0)
     expect(localStorage.getItem('pictoapp-data')).toBe(persisted)
   })
 
@@ -185,56 +186,78 @@ describe('useProfiles — favoris et masquage', () => {
     return { result, id: result.current.activeProfile!.id }
   }
 
-  it('ajoute puis retire un favori par défaut', () => {
+  it('ajoute puis retire un favori', () => {
     const { result, id } = withProfile()
-    act(() => result.current.toggleFavorite(id, 6456))
-    expect(result.current.activeProfile!.favorites).toEqual([6456])
-    act(() => result.current.toggleFavorite(id, 6456))
-    expect(result.current.activeProfile!.favorites).toEqual([])
+    act(() => result.current.basculerFavori(id, 'besoins#0'))
+    expect(result.current.activeProfile!.pageFavoris[0]).toBe('besoins#0')
+    act(() => result.current.basculerFavori(id, 'besoins#0'))
+    expect(result.current.activeProfile!.pageFavoris[0]).toBeNull()
   })
 
   it('ajoute les favoris dans l’ordre où ils sont choisis', () => {
     const { result, id } = withProfile()
-    act(() => result.current.toggleFavorite(id, 6479))
-    act(() => result.current.toggleFavorite(id, 6456))
-    expect(result.current.activeProfile!.favorites).toEqual([6479, 6456])
+    act(() => result.current.basculerFavori(id, 'besoins#3'))
+    act(() => result.current.basculerFavori(id, 'besoins#0'))
+    expect(result.current.activeProfile!.pageFavoris.slice(0, 2)).toEqual([
+      'besoins#3',
+      'besoins#0',
+    ])
   })
 
-  it('gère séparément les favoris des pictogrammes personnalisés', () => {
+  /**
+   * La réserve ouverte depuis le lot favoris se referme ici : retirer un favori
+   * laissait auparavant glisser d'un cran tous ceux qui suivaient.
+   */
+  it('laisse un trou à sa place quand un favori est retiré', () => {
     const { result, id } = withProfile()
-    act(() => result.current.toggleFavoriteCustom(id, 'c1'))
-    expect(result.current.activeProfile!.favoritesCustom).toEqual(['c1'])
-    expect(result.current.activeProfile!.favorites).toEqual([])
+    act(() => result.current.basculerFavori(id, 'besoins#0'))
+    act(() => result.current.basculerFavori(id, 'besoins#1'))
+    act(() => result.current.basculerFavori(id, 'besoins#3'))
+
+    act(() => result.current.basculerFavori(id, 'besoins#1'))
+
+    expect(result.current.activeProfile!.pageFavoris.slice(0, 3)).toEqual([
+      'besoins#0',
+      null,
+      'besoins#3',
+    ])
   })
 
-  it('masque puis réaffiche un pictogramme personnalisé', () => {
+  it('masque puis réaffiche une case', () => {
     const { result, id } = withProfile()
-    act(() => result.current.toggleHideCustomPictogram(id, 'c1'))
-    expect(result.current.activeProfile!.hiddenCustom).toEqual(['c1'])
-    act(() => result.current.toggleHideCustomPictogram(id, 'c1'))
-    expect(result.current.activeProfile!.hiddenCustom).toEqual([])
+    act(() => result.current.basculerMasque(id, 'besoins#1'))
+    expect(result.current.activeProfile!.slotsMasques).toEqual(['besoins#1'])
+    act(() => result.current.basculerMasque(id, 'besoins#1'))
+    expect(result.current.activeProfile!.slotsMasques).toEqual([])
   })
 
-  it('purge favori et masquage quand le pictogramme personnalisé est supprimé', () => {
+  it('pose un mot ajouté sur la première case libre de la page', () => {
     const { result, id } = withProfile()
     act(() => {
-      result.current.addCustomPictogram(id, {
-        word: 'Maman',
-        imageUrl: 'data:image/webp;base64,AAAA',
-        categoryId: 'besoins',
-      })
+      result.current.ajouterMotPerso(id, 'Maman', 'data:image/webp;base64,AAAA', 'besoins')
     })
-    const customId = result.current.activeProfile!.customPictograms[0].id
-    act(() => result.current.toggleFavoriteCustom(id, customId))
-    act(() => result.current.toggleHideCustomPictogram(id, customId))
+    const motId = result.current.activeProfile!.lexiquePerso[0].id
+    // Les cinq premières cases de « besoins » sont occupées par le tableau.
+    expect(result.current.activeProfile!.placements['besoins#5']).toBe(motId)
+  })
 
-    act(() => result.current.removeCustomPictogram(id, customId))
+  it('purge favori, masquage et placement quand le mot ajouté est supprimé', () => {
+    const { result, id } = withProfile()
+    act(() => {
+      result.current.ajouterMotPerso(id, 'Maman', 'data:image/webp;base64,AAAA', 'besoins')
+    })
+    const motId = result.current.activeProfile!.lexiquePerso[0].id
+    act(() => result.current.basculerFavori(id, 'besoins#5'))
+    act(() => result.current.basculerMasque(id, 'besoins#5'))
 
-    // Sans ce nettoyage, un identifiant fantôme resterait référencé et
-    // reviendrait hanter un import ou une future réutilisation d'id.
-    expect(result.current.activeProfile!.favoritesCustom).toEqual([])
-    expect(result.current.activeProfile!.hiddenCustom).toEqual([])
-    expect(result.current.activeProfile!.customPictograms).toEqual([])
+    act(() => result.current.retirerMotPerso(id, motId))
+
+    // Sans ce nettoyage, une adresse fantôme resterait référencée et
+    // reviendrait hanter un import ou une réutilisation de la case.
+    expect(result.current.activeProfile!.pageFavoris).not.toContain('besoins#5')
+    expect(result.current.activeProfile!.slotsMasques).toEqual([])
+    expect(result.current.activeProfile!.lexiquePerso).toEqual([])
+    expect(result.current.activeProfile!.placements).toEqual({})
   })
 })
 
@@ -247,11 +270,12 @@ describe('useProfiles — jauge d’occupation', () => {
     const before = result.current.usedBytes
 
     act(() => {
-      result.current.addCustomPictogram(result.current.activeProfile!.id, {
-        word: 'chien',
-        imageUrl: 'data:image/webp;base64,' + 'A'.repeat(500),
-        categoryId: 'besoins',
-      })
+      result.current.ajouterMotPerso(
+        result.current.activeProfile!.id,
+        'chien',
+        'data:image/webp;base64,' + 'A'.repeat(500),
+        'besoins',
+      )
     })
 
     expect(result.current.usedBytes).toBeGreaterThan(before + 500)

@@ -22,46 +22,47 @@ button {
 }
 
 /* ------------------------------------------------------------------------
-   Grille de pictogrammes : un nombre de colonnes **déclaré**, non déduit.
+   Grille de pictogrammes : une géométrie **déclarée par le tableau**.
 
-   `repeat(auto-fill, minmax(130px, 1fr))` laissait le navigateur choisir : le
-   nombre de colonnes variait avec la place disponible, et changeait donc quand
-   les onglets passent en colonne à gauche, à la rotation, ou d'un appareil à
-   l'autre. Or en CAA la position d'un pictogramme est un repère moteur : elle
-   doit rester la même d'une séance à l'autre, faute de quoi l'enfant réapprend
-   chaque fois où se trouve « manger ».
+   Le nombre de colonnes ne vient plus ni du navigateur (`auto-fill`) ni du
+   réglage de taille, mais des données : `GEOMETRIE` dans `data/tableauTla.ts`.
+   Il est donc le même sur tous les appareils, dans les deux orientations, à
+   tous les réglages. En CAA la position d'un pictogramme est un repère moteur,
+   et c'est le seul moyen qu'elle ne bouge jamais.
 
-   Les paliers ci-dessous reprennent le rendu antérieur sur les formats
-   courants, mais à valeur fixe : pour un appareil et un réglage donnés, la
-   grille ne bouge plus jamais. Deux causes de déplacement subsistent, toutes
-   deux volontaires et le fait de l'adulte : changer le réglage de taille
-   (désormais derrière le code parent) et tourner la tablette.
+   La contrepartie est assumée : quand la grille ne tient pas à l'écran, elle
+   **défile** au lieu de se reformer sur moins de colonnes. Une case reste au
+   même endroit dans le tableau même lorsqu'elle sort du champ visible, et
+   c'est cet endroit-là que l'enfant apprend. Sur un téléphone, un tableau de
+   six colonnes défile donc en largeur — c'est le prix d'une disposition stable,
+   pas un défaut de mise en page.
+
+   `grid-auto-rows` est fixe, et non déduit du contenu : sans cela une rangée
+   entièrement vide se replierait sur zéro pixel et remonterait toutes les
+   rangées suivantes, ce qui ruinerait précisément ce que les cases vides
+   servent à préserver.
+
+   Les trois tailles restent à valider par une orthophoniste, comme la
+   géométrie elle-même.
    ------------------------------------------------------------------------ */
 
-.picto-grid-S,
-.picto-grid-M,
-.picto-grid-L {
+.picto-grid {
   display: grid;
+  grid-template-columns: repeat(var(--colonnes), var(--taille-case));
+  grid-auto-rows: var(--hauteur-case);
+  gap: var(--espace-case);
+  padding: var(--espace-case);
+  /* La grille ne s'étire pas pour remplir un écran plus large qu'elle : les
+     colonnes garderaient leur nombre mais changeraient de largeur, et la
+     cible tactile bougerait d'un appareil à l'autre. */
+  justify-content: start;
+  align-content: start;
+  width: max-content;
 }
 
-/* Téléphone */
-.picto-grid-S { grid-template-columns: repeat(4, 1fr); gap: 8px;  padding: 10px; }
-.picto-grid-M { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; }
-.picto-grid-L { grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 14px; }
-
-/* Tablette 7 à 8 pouces, et téléphone couché */
-@media (min-width: 600px) {
-  .picto-grid-S { grid-template-columns: repeat(6, 1fr); }
-  .picto-grid-M { grid-template-columns: repeat(5, 1fr); }
-  .picto-grid-L { grid-template-columns: repeat(4, 1fr); }
-}
-
-/* Tablette 10 pouces et grands écrans */
-@media (min-width: 1024px) {
-  .picto-grid-S { grid-template-columns: repeat(8, 1fr); }
-  .picto-grid-M { grid-template-columns: repeat(6, 1fr); }
-  .picto-grid-L { grid-template-columns: repeat(5, 1fr); }
-}
+.picto-grid[data-taille='S'] { --taille-case: 72px;  --hauteur-case: 100px; --espace-case: 8px; }
+.picto-grid[data-taille='M'] { --taille-case: 96px;  --hauteur-case: 128px; --espace-case: 10px; }
+.picto-grid[data-taille='L'] { --taille-case: 124px; --hauteur-case: 164px; --espace-case: 14px; }
 
 /* ------------------------------------------------------------------------
    Mise en page paysage et grands écrans.

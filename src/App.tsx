@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, CSSProperties } from 'react'
 import { SentenceItem, InstallPromptEvent, UserProfile, PictogramItem } from './types'
 import { useProfiles } from './hooks/useProfiles'
 import { usePictograms } from './hooks/usePictograms'
@@ -15,6 +15,7 @@ import StorageAlert from './components/StorageAlert'
 import ParentGate from './components/ParentGate'
 import { DEFAULT_CATEGORIES, FAVORITES_CATEGORY_ID } from './data/defaultCategories'
 import { CORE_VOCABULARY } from './data/coreVocabulary'
+import { GEOMETRIE } from './data/tableauTla'
 
 export type { InstallPromptEvent }
 
@@ -32,14 +33,12 @@ export default function App() {
     addToHistory,
     parentPin,
     setParentPin,
-    toggleHidePictogram,
-    toggleHideCustomPictogram,
-    toggleFavorite,
-    toggleFavoriteCustom,
-    addCustomPictogram,
-    removeCustomPictogram,
+    basculerMasque,
+    basculerFavori,
+    ajouterMotPerso,
+    retirerMotPerso,
     updateSettings,
-    reorderCategories,
+    reordonnerPages,
     exportData,
     importData,
   } = useProfiles()
@@ -49,8 +48,8 @@ export default function App() {
   const {
     categories,
     tabs,
-    getPictogramsForCategory,
-    getFavoritePictograms,
+    casesDeLaPage,
+    casesFavorites,
     searchPictograms,
     searchArasaac,
   } = usePictograms(activeProfile)
@@ -93,9 +92,14 @@ export default function App() {
   }, [tabs, activeCategory])
 
   const isFavoritesTab = activeCategory === FAVORITES_CATEGORY_ID
-  const pictograms = isFavoritesTab
-    ? getFavoritePictograms()
-    : getPictogramsForCategory(activeCategory)
+  /**
+   * Les cases de la page affichée, `null` compris : le tableau a la longueur
+   * de la géométrie déclarée, et c'est cette longueur qui garantit que rien ne
+   * bouge quand une case se vide.
+   */
+  const cases = isFavoritesTab ? casesFavorites() : casesDeLaPage(activeCategory)
+  const pageVide = cases.every((c) => c === null)
+
   const handlePictogramClick = (picto: {
     key: string
     word: string
@@ -136,12 +140,11 @@ export default function App() {
   }
 
   const handleToggleFavorite = (picto: PictogramItem) => {
-    if (!activeProfile) return
-    if (picto.isCustom && picto.customId) {
-      toggleFavoriteCustom(activeProfile.id, picto.customId)
-    } else if (picto.arasaacId !== undefined) {
-      toggleFavorite(activeProfile.id, picto.arasaacId)
-    }
+    // Le favori porte sur la case, pas sur le mot : c'est ce qui permet de
+    // mettre « moi » en favori depuis la page Personnes sans l'y attacher
+    // partout ailleurs dans le tableau.
+    if (!activeProfile || !picto.refSlot) return
+    basculerFavori(activeProfile.id, picto.refSlot)
   }
 
   const handleRemoveItem = (key: string) => {
@@ -302,51 +305,60 @@ export default function App() {
           }}
         />
 
-        {/* Pictogram grid */}
-        <div className="flex-1 min-w-0 overflow-y-auto" ref={gridRef}>
-          <div className={`picto-grid-${activeProfile.settings.pictogramSize}`}>
-            {pictograms.map((picto) =>
-              picto.isHidden ? (
-                // Case vide, et non case absente : la position de tous les
-                // pictogrammes suivants doit rester celle que l'enfant a
-                // apprise. Invisible et hors du parcours de lecture d'écran.
-                <div key={picto.key} aria-hidden="true" />
+        {/*
+          La grille défile sur les deux axes : sa géométrie est déclarée par le
+          tableau et ne se reforme jamais pour tenir à l'écran. Une case garde
+          sa place même hors du champ visible — c'est cette place que l'enfant
+          apprend, et la faire varier avec la largeur de l'appareil reviendrait
+          à la lui redemander à chaque fois.
+        */}
+        <div className="flex-1 min-w-0 overflow-auto" ref={gridRef}>
+          {pageVide ? (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+              <span className="text-5xl mb-3">{isFavoritesTab ? '⭐' : '🏞️'}</span>
+              {isFavoritesTab ? (
+                <>
+                  <p className="text-base">Aucun favori pour le moment</p>
+                  <p className="text-sm mt-1">
+                    Touchez l'étoile d'un pictogramme pour l'ajouter ici
+                  </p>
+                </>
               ) : (
-              <PictogramCard
-                key={picto.key}
-                picto={picto}
-                size={activeProfile.settings.pictogramSize}
-                onClick={handlePictogramClick}
-                onToggleFavorite={handleToggleFavorite}
-                // Verrou posé : l'étoile disparaît. C'était la réserve ouverte
-                // depuis le lot favoris — un enfant qui vise son mot touchait
-                // l'étoile d'à côté et n'entendait rien.
-                showFavorite={!estVerrouille}
-              />
-              ),
-            )}
-            {pictograms.length === 0 && (
-              <div
-                className="flex flex-col items-center justify-center py-16 text-gray-400"
-                style={{ gridColumn: '1 / -1' }}
-              >
-                <span className="text-5xl mb-3">{isFavoritesTab ? '⭐' : '🏞️'}</span>
-                {isFavoritesTab ? (
-                  <>
-                    <p className="text-base">Aucun favori pour le moment</p>
-                    <p className="text-sm mt-1">
-                      Touchez l'étoile d'un pictogramme pour l'ajouter ici
-                    </p>
-                  </>
+                <>
+                  <p className="text-base">Aucun pictogramme sur cette page</p>
+                  <p className="text-sm mt-1">Ajoutes-en dans les paramètres</p>
+                </>
+              )}
+            </div>
+          ) : (
+            <div
+              className="picto-grid"
+              data-taille={activeProfile.settings.tailleCase}
+              style={{ '--colonnes': GEOMETRIE.colonnes } as CSSProperties}
+            >
+              {cases.map((picto, index) =>
+                picto === null || picto.isHidden ? (
+                  // Case vide, et non case absente : la position de tous les
+                  // pictogrammes suivants doit rester celle que l'enfant a
+                  // apprise. Invisible et hors du parcours de lecture d'écran.
+                  <div key={picto?.key ?? `vide-${index}`} aria-hidden="true" />
                 ) : (
-                  <>
-                    <p className="text-base">Aucun pictogramme dans cette catégorie</p>
-                    <p className="text-sm mt-1">Ajoutes-en dans les paramètres</p>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+                  <PictogramCard
+                    key={picto.key}
+                    picto={picto}
+                    size={activeProfile.settings.tailleCase}
+                    modeCouleur={activeProfile.settings.modeCouleur}
+                    onClick={handlePictogramClick}
+                    onToggleFavorite={handleToggleFavorite}
+                    // Verrou posé : l'étoile disparaît. C'était la réserve
+                    // ouverte depuis le lot favoris — un enfant qui vise son
+                    // mot touchait l'étoile d'à côté et n'entendait rien.
+                    showFavorite={!estVerrouille}
+                  />
+                ),
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -356,6 +368,7 @@ export default function App() {
           onSearch={searchPictograms}
           onSelect={handlePictogramClick}
           onClose={() => setShowSearch(false)}
+          modeCouleur={activeProfile.settings.modeCouleur}
         />
       )}
 
@@ -379,13 +392,12 @@ export default function App() {
           categories={categories}
           onClose={() => setShowSettings(false)}
           onUpdateSettings={(s) => updateSettings(activeProfile.id, s)}
-          onReorderCategories={(order) => reorderCategories(activeProfile.id, order)}
-          onAddCustomPictogram={(word, imageUrl, categoryId) =>
-            addCustomPictogram(activeProfile.id, { word, imageUrl, categoryId })
+          onReorderCategories={(order) => reordonnerPages(activeProfile.id, order)}
+          onAddCustomPictogram={(word, imageUrl, pageId) =>
+            ajouterMotPerso(activeProfile.id, word, imageUrl, pageId)
           }
-          onRemoveCustomPictogram={(id) => removeCustomPictogram(activeProfile.id, id)}
-          onToggleHide={(id) => toggleHidePictogram(activeProfile.id, id)}
-          onToggleHideCustom={(id) => toggleHideCustomPictogram(activeProfile.id, id)}
+          onRemoveCustomPictogram={(id) => retirerMotPerso(activeProfile.id, id)}
+          onToggleHide={(ref) => basculerMasque(activeProfile.id, ref)}
           searchArasaac={searchArasaac}
           usedBytes={usedBytes}
           onExportData={exportData}

@@ -1,7 +1,11 @@
 import { useState } from 'react'
-import { UserProfile, PictogramSize, Category } from '../types'
+import { UserProfile, TailleCase, Category, ProfileSettings, RefSlot } from '../types'
 import { ImportMode, ImportOutcome } from '../hooks/useProfiles'
 import { fileToStoredImage, remoteImageToStoredImage, isStoredLocally } from '../utils/image'
+import { lireRefSlot } from '../utils/pages'
+import { trouverPage } from '../data/tableauTla'
+import { PALETTE_FITZGERALD } from '../data/classesGrammaticales'
+import { DEFAULT_CATEGORIES } from '../data/defaultCategories'
 import BackupTab from './BackupTab'
 import CategoryManager from './CategoryManager'
 import ParentGate from './ParentGate'
@@ -17,8 +21,8 @@ interface Props {
   /** Renvoie `false` si l'ajout n'a pas pu être enregistré (quota saturé). */
   onAddCustomPictogram: (word: string, imageUrl: string, categoryId: string) => boolean
   onRemoveCustomPictogram: (id: string) => void
-  onToggleHide: (pictoId: number) => void
-  onToggleHideCustom: (customId: string) => void
+  /** Masque ou réaffiche une case, désignée par son adresse. */
+  onToggleHide: (ref: RefSlot) => void
   searchArasaac: (keyword: string) => Promise<{ arasaacId?: number; word: string; imageUrl: string }[]>
   usedBytes: number
   onExportData: () => void
@@ -32,6 +36,41 @@ interface Props {
 
 type Tab = 'display' | 'voice' | 'categories' | 'custom' | 'backup' | 'parent'
 
+/**
+ * Page où le profil a posé ce mot. Un mot sans placement resterait invisible
+ * dans la grille : le signaler vaut mieux que de le taire, c'est exactement le
+ * défaut que le rangement en « Favoris » provoquait autrefois.
+ */
+function nomDePageDuMot(profile: UserProfile, lexiqueId: string): string {
+  const ref = Object.entries(profile.placements).find(([, id]) => id === lexiqueId)?.[0]
+  const pageId = ref ? lireRefSlot(ref)?.pageId : undefined
+  if (!pageId) return 'sur aucune page'
+  return trouverPage(pageId)?.titre ?? pageId
+}
+
+/** Aperçus du sélecteur : quelques tons représentatifs de chaque codage. */
+const MODES_COULEUR: {
+  id: ProfileSettings['modeCouleur']
+  libelle: string
+  exemple: string[]
+}[] = [
+  {
+    id: 'grammatical',
+    libelle: 'Grammatical',
+    exemple: [
+      PALETTE_FITZGERALD.pronom.fond,
+      PALETTE_FITZGERALD.verbe.fond,
+      PALETTE_FITZGERALD.nom.fond,
+      PALETTE_FITZGERALD.adjectif.fond,
+    ],
+  },
+  {
+    id: 'thematique',
+    libelle: 'Par thème',
+    exemple: DEFAULT_CATEGORIES.slice(0, 4).map((c) => c.bgColor),
+  },
+]
+
 export default function SettingsPanel({
   profile,
   categories,
@@ -41,7 +80,6 @@ export default function SettingsPanel({
   onAddCustomPictogram,
   onRemoveCustomPictogram,
   onToggleHide,
-  onToggleHideCustom,
   searchArasaac,
   usedBytes,
   onExportData,
@@ -166,17 +204,59 @@ export default function SettingsPanel({
                   Taille des pictogrammes
                 </label>
                 <div className="flex gap-2">
-                  {(['S', 'M', 'L'] as PictogramSize[]).map((s) => (
+                  {(['S', 'M', 'L'] as TailleCase[]).map((s) => (
                     <button
                       key={s}
-                      onClick={() => onUpdateSettings({ pictogramSize: s })}
+                      onClick={() => onUpdateSettings({ tailleCase: s })}
                       className={`flex-1 py-3 rounded-xl font-bold text-lg border-2 transition-all ${
-                        profile.settings.pictogramSize === s
+                        profile.settings.tailleCase === s
                           ? 'bg-violet-600 text-white border-violet-600'
                           : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
                       {s}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  La taille d'une case, pas le nombre de colonnes : la grille garde
+                  toujours la même disposition et défile si elle ne tient pas à l'écran.
+                </p>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <label className="text-sm font-bold text-gray-700 block mb-1">
+                  Couleur des pictogrammes
+                </label>
+                <p className="mb-2 text-xs text-gray-500">
+                  Le codage grammatical est la convention des tableaux de langage
+                  assisté : la couleur dit la nature du mot, la même sur toutes les
+                  pages. À choisir avec l'orthophoniste qui suit l'enfant.
+                </p>
+                <div className="flex gap-2">
+                  {MODES_COULEUR.map(({ id, libelle, exemple }) => (
+                    <button
+                      key={id}
+                      onClick={() => onUpdateSettings({ modeCouleur: id })}
+                      aria-pressed={profile.settings.modeCouleur === id}
+                      className={`flex-1 rounded-xl border-2 p-2 text-left transition-all ${
+                        profile.settings.modeCouleur === id
+                          ? 'border-violet-600 bg-violet-50'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <span className="block text-sm font-bold text-gray-700">{libelle}</span>
+                      {/* Un aperçu vaut mieux qu'une description : le parent voit
+                          ce qu'il choisit avant de changer la grille de l'enfant. */}
+                      <span className="mt-1.5 flex gap-1" aria-hidden="true">
+                        {exemple.map((couleur) => (
+                          <span
+                            key={couleur}
+                            className="h-4 w-4 rounded"
+                            style={{ backgroundColor: couleur }}
+                          />
+                        ))}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -260,7 +340,6 @@ export default function SettingsPanel({
               categories={storageCategories}
               onReorderCategories={onReorderCategories}
               onToggleHide={onToggleHide}
-              onToggleHideCustom={onToggleHideCustom}
             />
           )}
 
@@ -376,21 +455,20 @@ export default function SettingsPanel({
               </button>
 
               {/* Custom pictograms list */}
-              {profile.customPictograms.length > 0 && (
+              {profile.lexiquePerso.length > 0 && (
                 <div className="border-t border-gray-200 pt-4">
                   <p className="text-sm font-bold text-gray-700 mb-2">Mes pictogrammes</p>
                   <div className="space-y-2">
-                    {profile.customPictograms.map((c) => (
+                    {profile.lexiquePerso.map((c) => (
                       <div
                         key={c.id}
                         className="flex items-center gap-3 bg-gray-50 rounded-xl p-2 border border-gray-100"
                       >
-                        <img src={c.imageUrl} alt={c.word} className="w-12 h-12 object-contain rounded-lg bg-white" />
+                        <img src={c.imageUrl} alt={c.mot} className="w-12 h-12 object-contain rounded-lg bg-white" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-gray-800 truncate">{c.word}</p>
+                          <p className="font-bold text-sm text-gray-800 truncate">{c.mot}</p>
                           <p className="text-xs text-gray-500">
-                            {storageCategories.find((cat) => cat.id === c.categoryId)?.name ??
-                              c.categoryId}
+                            {nomDePageDuMot(profile, c.id)}
                           </p>
                         </div>
                         <button

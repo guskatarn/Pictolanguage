@@ -2,11 +2,13 @@ import { useState, useCallback, useMemo } from 'react'
 import {
   UserProfile,
   ProfileSettings,
-  CustomPictogram,
+  EntreeLexique,
   HistoryEntry,
+  RefSlot,
   StoredData,
 } from '../types'
-import { DEFAULT_CATEGORIES } from '../data/defaultCategories'
+import { ORDRE_PAGES_PAR_DEFAUT, TABLEAU_TLA, trouverPage } from '../data/tableauTla'
+import { nombreDeSlots, premierSlotLibre } from '../utils/pages'
 import { loadData, saveData, parseBackup, downloadBackup } from '../utils/storage'
 
 const MAX_HISTORY = 20
@@ -26,22 +28,30 @@ const UNAVAILABLE_MESSAGE =
   "Le stockage de cet appareil est inaccessible (navigation privée ?). L'application reste utilisable, " +
   'mais les modifications seront perdues à la fermeture.'
 
+/**
+ * `accord` n'est pas encore demandé à la création : il ne produit d'effet
+ * qu'une fois la formulation des phrases en place. Poser la question avant
+ * qu'elle ne change quoi que ce soit ne ferait qu'ajouter une étape opaque.
+ */
 function createDefaultProfile(name: string, avatar: string): UserProfile {
   return {
     id: crypto.randomUUID(),
     name,
     avatar,
-    favorites: [],
-    favoritesCustom: [],
-    hidden: [],
-    hiddenCustom: [],
-    categoryOrder: DEFAULT_CATEGORIES.map((c) => c.id),
-    customPictograms: [],
+    tableauId: TABLEAU_TLA.id,
+    pageFavoris: new Array(nombreDeSlots(TABLEAU_TLA.geometrie)).fill(null),
+    slotsMasques: [],
+    ordrePages: [...ORDRE_PAGES_PAR_DEFAUT],
+    lexiquePerso: [],
+    placements: {},
     history: [],
     settings: {
-      pictogramSize: 'M',
+      tailleCase: 'M',
       voiceRate: 1,
       voiceVolume: 1,
+      modeCouleur: 'grammatical',
+      formulation: 'naturelle',
+      accord: 'masculin',
       showCoreBar: true,
     },
   }
@@ -175,107 +185,110 @@ export function useProfiles() {
     [data, persist],
   )
 
-  const toggleHidePictogram = useCallback(
-    (profileId: string, pictoId: number) => {
-      const next: StoredData = {
+  /** Applique une transformation au seul profil visé. */
+  const majProfil = useCallback(
+    (profileId: string, transforme: (p: UserProfile) => UserProfile): boolean =>
+      persist({
         ...data,
-        profiles: data.profiles.map((p) => {
-          if (p.id !== profileId) return p
-          const hidden = p.hidden.includes(pictoId)
-            ? p.hidden.filter((id) => id !== pictoId)
-            : [...p.hidden, pictoId]
-          return { ...p, hidden }
-        }),
-      }
-      persist(next)
-    },
+        profiles: data.profiles.map((p) => (p.id === profileId ? transforme(p) : p)),
+      }),
     [data, persist],
   )
 
-  const toggleHideCustomPictogram = useCallback(
-    (profileId: string, customId: string) => {
-      const next: StoredData = {
-        ...data,
-        profiles: data.profiles.map((p) => {
-          if (p.id !== profileId) return p
-          const hiddenCustom = p.hiddenCustom.includes(customId)
-            ? p.hiddenCustom.filter((id) => id !== customId)
-            : [...p.hiddenCustom, customId]
-          return { ...p, hiddenCustom }
-        }),
-      }
-      persist(next)
-    },
-    [data, persist],
+  /**
+   * Masque ou réaffiche **une case**, jamais un mot.
+   *
+   * La distinction est le cœur du modèle : un même mot occupe souvent
+   * plusieurs cases du tableau, et masquer par identifiant les emportait
+   * toutes d'un coup — retirer « moi » de la page Personnes le faisait aussi
+   * disparaître des mots rapides, sans que rien ne l'annonce.
+   */
+  const basculerMasque = useCallback(
+    (profileId: string, ref: RefSlot) =>
+      majProfil(profileId, (p) => ({
+        ...p,
+        slotsMasques: p.slotsMasques.includes(ref)
+          ? p.slotsMasques.filter((r) => r !== ref)
+          : [...p.slotsMasques, ref],
+      })),
+    [majProfil],
   )
 
-  const toggleFavorite = useCallback(
-    (profileId: string, pictoId: number) => {
-      const next: StoredData = {
-        ...data,
-        profiles: data.profiles.map((p) => {
-          if (p.id !== profileId) return p
-          const favorites = p.favorites.includes(pictoId)
-            ? p.favorites.filter((id) => id !== pictoId)
-            : [...p.favorites, pictoId]
-          return { ...p, favorites }
-        }),
-      }
-      persist(next)
-    },
-    [data, persist],
+  /**
+   * Ajoute ou retire un favori. Le retrait laisse un `null` à sa place plutôt
+   * que de refermer la liste : la position d'un favori ne doit pas bouger
+   * parce qu'un autre a été retiré. Sans place libre, rien ne se passe.
+   */
+  const basculerFavori = useCallback(
+    (profileId: string, ref: RefSlot) =>
+      majProfil(profileId, (p) => {
+        const occupe = p.pageFavoris.indexOf(ref)
+        if (occupe !== -1) {
+          const pageFavoris = [...p.pageFavoris]
+          pageFavoris[occupe] = null
+          return { ...p, pageFavoris }
+        }
+        const libre = p.pageFavoris.indexOf(null)
+        if (libre === -1) return p
+        const pageFavoris = [...p.pageFavoris]
+        pageFavoris[libre] = ref
+        return { ...p, pageFavoris }
+      }),
+    [majProfil],
   )
 
-  const toggleFavoriteCustom = useCallback(
-    (profileId: string, customId: string) => {
-      const next: StoredData = {
-        ...data,
-        profiles: data.profiles.map((p) => {
-          if (p.id !== profileId) return p
-          const favoritesCustom = p.favoritesCustom.includes(customId)
-            ? p.favoritesCustom.filter((id) => id !== customId)
-            : [...p.favoritesCustom, customId]
-          return { ...p, favoritesCustom }
-        }),
+  /**
+   * Ajoute un mot personnalisé sur la première case libre de la page visée.
+   *
+   * Renvoie `false` si l'enregistrement a échoué (quota saturé) **ou** si la
+   * page est pleine — un mot sans case serait enregistré sans jamais
+   * s'afficher, exactement le défaut que le rangement en « Favoris »
+   * provoquait autrefois.
+   */
+  const ajouterMotPerso = useCallback(
+    (profileId: string, mot: string, imageUrl: string, pageId: string): boolean => {
+      const page = trouverPage(pageId)
+      if (!page) return false
+      const profil = data.profiles.find((p) => p.id === profileId)
+      if (!profil) return false
+
+      const ref = premierSlotLibre(page, Object.keys(profil.placements))
+      if (!ref) return false
+
+      const entree: EntreeLexique = {
+        id: crypto.randomUUID(),
+        mot,
+        imageUrl,
+        classeGrammaticale: 'nom',
       }
-      persist(next)
+      return majProfil(profileId, (p) => ({
+        ...p,
+        lexiquePerso: [...p.lexiquePerso, entree],
+        placements: { ...p.placements, [ref]: entree.id },
+      }))
     },
-    [data, persist],
+    [data, majProfil],
   )
 
-  /** Renvoie `false` si l'ajout n'a pas pu être enregistré (quota saturé). */
-  const addCustomPictogram = useCallback(
-    (profileId: string, picto: Omit<CustomPictogram, 'id'>): boolean => {
-      const custom: CustomPictogram = { ...picto, id: crypto.randomUUID() }
-      const next: StoredData = {
-        ...data,
-        profiles: data.profiles.map((p) => {
-          if (p.id !== profileId) return p
-          return { ...p, customPictograms: [...p.customPictograms, custom] }
-        }),
-      }
-      return persist(next)
-    },
-    [data, persist],
-  )
-
-  const removeCustomPictogram = useCallback(
-    (profileId: string, customId: string) => {
-      const next: StoredData = {
-        ...data,
-        profiles: data.profiles.map((p) => {
-          if (p.id !== profileId) return p
-          return {
-            ...p,
-            customPictograms: p.customPictograms.filter((c) => c.id !== customId),
-            hiddenCustom: p.hiddenCustom.filter((id) => id !== customId),
-            favoritesCustom: p.favoritesCustom.filter((id) => id !== customId),
-          }
-        }),
-      }
-      persist(next)
-    },
-    [data, persist],
+  const retirerMotPerso = useCallback(
+    (profileId: string, lexiqueId: string) =>
+      majProfil(profileId, (p) => {
+        const refs = Object.entries(p.placements)
+          .filter(([, id]) => id === lexiqueId)
+          .map(([ref]) => ref)
+        const placements = { ...p.placements }
+        for (const ref of refs) delete placements[ref]
+        return {
+          ...p,
+          lexiquePerso: p.lexiquePerso.filter((e) => e.id !== lexiqueId),
+          placements,
+          // Les cases libérées ne doivent laisser derrière elles ni masquage ni
+          // favori : ils désigneraient un mot qui n'existe plus.
+          slotsMasques: p.slotsMasques.filter((r) => !refs.includes(r)),
+          pageFavoris: p.pageFavoris.map((r) => (r && refs.includes(r) ? null : r)),
+        }
+      }),
+    [majProfil],
   )
 
   const updateSettings = useCallback(
@@ -292,17 +305,9 @@ export function useProfiles() {
     [data, persist],
   )
 
-  const reorderCategories = useCallback(
-    (profileId: string, categoryOrder: string[]) => {
-      const next: StoredData = {
-        ...data,
-        profiles: data.profiles.map((p) =>
-          p.id === profileId ? { ...p, categoryOrder } : p,
-        ),
-      }
-      persist(next)
-    },
-    [data, persist],
+  const reordonnerPages = useCallback(
+    (profileId: string, ordrePages: string[]) => majProfil(profileId, (p) => ({ ...p, ordrePages })),
+    [majProfil],
   )
 
   const exportData = useCallback(() => downloadBackup(data), [data])
@@ -375,14 +380,12 @@ export function useProfiles() {
     addToHistory,
     parentPin: data.parentPin,
     setParentPin,
-    toggleHidePictogram,
-    toggleHideCustomPictogram,
-    toggleFavorite,
-    toggleFavoriteCustom,
-    addCustomPictogram,
-    removeCustomPictogram,
+    basculerMasque,
+    basculerFavori,
+    ajouterMotPerso,
+    retirerMotPerso,
     updateSettings,
-    reorderCategories,
+    reordonnerPages,
     exportData,
     importData,
   }

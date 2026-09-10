@@ -29,14 +29,23 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = join(root, 'public', 'pictograms')
 const force = process.argv.includes('--force')
 
-/** Extrait les ids ARASAAC d'un fichier de données TypeScript. */
+/**
+ * Extrait les ids ARASAAC d'un fichier de données TypeScript.
+ *
+ * Accepte `id: 6632` (ancien format, où l'id ARASAAC servait d'identifiant) et
+ * `arasaacId: 6632` (lexique, dont l'`id` est désormais un slug applicatif).
+ * Ne jamais restreindre ce motif au seul `id:` : le lexique n'en contient plus
+ * aucun de numérique, et le script supprimerait alors les 42 images embarquées
+ * en les croyant devenues inutiles.
+ */
 function extractIds(relPath) {
   const src = readFileSync(join(root, relPath), 'utf8')
-  return [...src.matchAll(/\{\s*id:\s*(\d+)/g)].map((m) => Number(m[1]))
+  return [...src.matchAll(/\b(?:id|arasaacId):\s*(\d+)/g)].map((m) => Number(m[1]))
 }
 
 const ids = [
   ...new Set([
+    ...extractIds('src/data/lexique.ts'),
     ...extractIds('src/data/defaultPictograms.ts'),
     ...extractIds('src/data/coreVocabulary.ts'),
   ]),

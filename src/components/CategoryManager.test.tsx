@@ -3,34 +3,35 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CategoryManager from './CategoryManager'
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories'
-import { makeProfile, makeCustomPictogram } from '../test/factories'
+import { makeProfile, makeMotPerso } from '../test/factories'
 import { UserProfile } from '../types'
 
-const MANGER = 6456
+/** Première case de la page « besoins » : « manger ». */
+const MANGER = 'besoins#0'
+/** Première case libre de la page, où atterrit un mot ajouté par le parent. */
+const LIBRE = 'besoins#5'
 
-function setup(profile: UserProfile = makeProfile({ categoryOrder: ['besoins', 'emotions'] })) {
+function setup(profile: UserProfile = makeProfile({ ordrePages: ['besoins', 'emotions'] })) {
   const onReorderCategories = vi.fn()
   const onToggleHide = vi.fn()
-  const onToggleHideCustom = vi.fn()
   render(
     <CategoryManager
       profile={profile}
       categories={DEFAULT_CATEGORIES}
       onReorderCategories={onReorderCategories}
       onToggleHide={onToggleHide}
-      onToggleHideCustom={onToggleHideCustom}
     />,
   )
-  return { onReorderCategories, onToggleHide, onToggleHideCustom, user: userEvent.setup() }
+  return { onReorderCategories, onToggleHide, user: userEvent.setup() }
 }
 
-describe('CategoryManager — ordre des catégories', () => {
-  it('interdit de monter la première catégorie', () => {
+describe('CategoryManager — ordre des pages', () => {
+  it('interdit de monter la première page', () => {
     setup()
     expect(screen.getByRole('button', { name: /Monter Besoins/i })).toBeDisabled()
   })
 
-  it('échange deux catégories', async () => {
+  it('échange deux pages', async () => {
     const { onReorderCategories, user } = setup()
     await user.click(screen.getByRole('button', { name: /Descendre Besoins/i }))
     expect(onReorderCategories).toHaveBeenCalledWith(['emotions', 'besoins'])
@@ -46,9 +47,9 @@ describe('CategoryManager — pictogrammes affichés', () => {
     expect(screen.getByLabelText('manger')).toBeInTheDocument()
   })
 
-  it('coche les pictogrammes visibles et décoche les masqués', async () => {
+  it('coche les cases visibles et décoche les masquées', async () => {
     const { user } = setup(
-      makeProfile({ categoryOrder: ['besoins', 'emotions'], hidden: [MANGER] }),
+      makeProfile({ ordrePages: ['besoins', 'emotions'], slotsMasques: [MANGER] }),
     )
     await user.click(screen.getByRole('button', { name: /Gérer les pictogrammes de Besoins/i }))
 
@@ -56,29 +57,53 @@ describe('CategoryManager — pictogrammes affichés', () => {
     expect(screen.getByLabelText('boire')).toBeChecked()
   })
 
-  it('signale le nombre de pictogrammes masqués sans déplier', () => {
-    setup(makeProfile({ categoryOrder: ['besoins', 'emotions'], hidden: [MANGER] }))
+  it('signale le nombre de cases masquées sans déplier', () => {
+    setup(makeProfile({ ordrePages: ['besoins', 'emotions'], slotsMasques: [MANGER] }))
     expect(screen.getByText('1 masqué')).toBeInTheDocument()
   })
 
-  it('bascule la visibilité d’un pictogramme par défaut', async () => {
+  /**
+   * Le rappel remonte une **adresse de case**, pas un identifiant de mot.
+   * C'est ce qui permet de vider une case précise sans faire disparaître le
+   * même mot partout où il figure dans le tableau.
+   */
+  it('bascule la visibilité d’une case en remontant son adresse', async () => {
     const { onToggleHide, user } = setup()
     await user.click(screen.getByRole('button', { name: /Gérer les pictogrammes de Besoins/i }))
     await user.click(screen.getByLabelText('manger'))
     expect(onToggleHide).toHaveBeenCalledWith(MANGER)
   })
 
-  it('bascule la visibilité d’un pictogramme personnalisé', async () => {
-    const custom = makeCustomPictogram({ id: 'c1', word: 'Maman', categoryId: 'besoins' })
-    const { onToggleHideCustom, user } = setup(
-      makeProfile({ categoryOrder: ['besoins', 'emotions'], customPictograms: [custom] }),
+  it('bascule de même la visibilité d’un mot ajouté par le parent', async () => {
+    const { onToggleHide, user } = setup(
+      makeProfile({
+        ordrePages: ['besoins', 'emotions'],
+        lexiquePerso: [makeMotPerso({ id: 'c1', mot: 'Maman' })],
+        placements: { [LIBRE]: 'c1' },
+      }),
     )
     await user.click(screen.getByRole('button', { name: /Gérer les pictogrammes de Besoins/i }))
     await user.click(screen.getByLabelText(/Maman/))
-    expect(onToggleHideCustom).toHaveBeenCalledWith('c1')
+    expect(onToggleHide).toHaveBeenCalledWith(LIBRE)
   })
 
-  it('ne déplie qu’une catégorie à la fois', async () => {
+  it('liste les cases dans l’ordre où elles sont posées sur la page', async () => {
+    const { user } = setup(
+      makeProfile({
+        ordrePages: ['besoins'],
+        lexiquePerso: [makeMotPerso({ id: 'c1', mot: 'Maman' })],
+        placements: { [LIBRE]: 'c1' },
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: /Gérer les pictogrammes de Besoins/i }))
+
+    const libelles = screen
+      .getAllByRole('checkbox')
+      .map((c) => c.closest('label')!.textContent!.replace('perso', '').trim())
+    expect(libelles).toEqual(['manger', 'boire', 'toilettes', 'dormir', 'aide', 'Maman'])
+  })
+
+  it('ne déplie qu’une page à la fois', async () => {
     const { user } = setup()
     await user.click(screen.getByRole('button', { name: /Gérer les pictogrammes de Besoins/i }))
     await user.click(screen.getByRole('button', { name: /Gérer les pictogrammes de Émotions/i }))
