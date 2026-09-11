@@ -119,3 +119,44 @@ describe('PictogramCard — couleurs', () => {
     })
   })
 })
+
+describe('PictogramCard — illumination en modélisation', () => {
+  it('illumine la case touchée quand l’adulte modélise, et seulement alors', async () => {
+    // jsdom n'implémente pas l'API Web Animations : on la simule pour
+    // observer l'appel.
+    const anime = vi.fn()
+    HTMLElement.prototype.animate = anime
+    const onClick = vi.fn()
+    const user = userEvent.setup()
+
+    const { unmount } = render(
+      <PictogramCard
+        picto={picto}
+        size="M"
+        modeCouleur="grammatical"
+        onClick={onClick}
+        onToggleFavorite={vi.fn()}
+        illuminer
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'manger' }))
+    expect(anime).toHaveBeenCalledTimes(1)
+    expect(onClick).toHaveBeenCalledTimes(1)
+    unmount()
+
+    anime.mockClear()
+    render(
+      <PictogramCard
+        picto={picto}
+        size="M"
+        modeCouleur="grammatical"
+        onClick={onClick}
+        onToggleFavorite={vi.fn()}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'manger' }))
+    expect(anime).not.toHaveBeenCalled()
+
+    delete (HTMLElement.prototype as Partial<HTMLElement>).animate
+  })
+})

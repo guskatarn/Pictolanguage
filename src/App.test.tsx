@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
+
+/**
+ * La synthèse est remplacée par un espion : jsdom n'a pas de voix, et le mode
+ * modélisation se vérifie justement à ce qu'il **dit** sans rien composer.
+ */
+const { parle } = vi.hoisted(() => ({ parle: vi.fn() }))
+vi.mock('./hooks/useSpeech', () => ({
+  useSpeech: () => ({ speak: parle, cancel: vi.fn(), isSpeaking: false, isSupported: true }),
+}))
+
+beforeEach(() => parle.mockClear())
 import { makePageFavoris, makeProfile } from './test/factories'
 import { TABLEAU_TLA } from './data/tableauTla'
 import { nombreDeSlots } from './utils/pages'
@@ -20,11 +31,6 @@ function seedProfile(parentPin: string | null = null) {
   return profile
 }
 
-/**
- * `speechSynthesis` n'existe pas sous jsdom : `useSpeech` le détecte et ne fait
- * rien. C'est exactement ce qu'il faut ici — ces tests portent sur ce que
- * devient la phrase affichée, pas sur la lecture elle-même.
- */
 describe('App — la phrase composée', () => {
   it('reste affichée après avoir été prononcée', async () => {
     // Régression visée : la phrase était vidée dès la lecture, si bien qu'un
@@ -154,6 +160,96 @@ describe('App — verrou parental', () => {
     await user.click(screen.getByRole('button', { name: 'Changer de profil' }))
     expect(screen.getByRole('heading', { name: /Code parent/ })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'disavecmoi' })).not.toBeInTheDocument()
+  })
+})
+
+describe('App — mode modélisation', () => {
+  const modelisation = () => screen.getByRole('button', { name: 'Mode modélisation' })
+
+  it('dit le mot touché sans l’ajouter à la phrase de l’enfant', async () => {
+    seedProfile()
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(modelisation())
+    expect(modelisation()).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(screen.getByRole('button', { name: 'manger' }))
+    expect(parle).toHaveBeenCalledWith('manger', expect.anything())
+    expect(screen.queryByRole('button', { name: 'Retirer manger' })).not.toBeInTheDocument()
+  })
+
+  it('laisse intacte la phrase que l’enfant avait commencée', async () => {
+    seedProfile()
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'manger' }))
+    await user.click(modelisation())
+    await user.click(screen.getByRole('button', { name: 'boire' }))
+
+    expect(screen.getByRole('button', { name: 'Retirer manger' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Retirer boire' })).not.toBeInTheDocument()
+  })
+
+  it('rend à l’enfant une grille qui compose, une fois le mode quitté', async () => {
+    seedProfile()
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(modelisation())
+    await user.click(modelisation())
+    await user.click(screen.getByRole('button', { name: 'manger' }))
+
+    expect(screen.getByRole('button', { name: 'Retirer manger' })).toBeInTheDocument()
+  })
+
+  it('laisse les cases de navigation montrer le chemin', async () => {
+    // L'adulte montre aussi où se trouve un mot : ouvrir la page en fait partie.
+    seedProfile()
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(modelisation())
+    await user.click(screen.getByRole('button', { name: 'Ouvrir la page Lieux' }))
+    expect(screen.getByRole('button', { name: 'école' })).toBeInTheDocument()
+  })
+
+  it('demande le code pour entrer, pas pour sortir', async () => {
+    // Entrer par mégarde priverait l'enfant de sa phrase ; sortir par mégarde
+    // ne fait que lui rendre sa grille.
+    seedProfile('4321')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(modelisation())
+    expect(screen.getByRole('heading', { name: /Code parent/ })).toBeInTheDocument()
+    expect(modelisation()).toHaveAttribute('aria-pressed', 'false')
+
+    for (const chiffre of '4321') {
+      await user.click(screen.getByRole('button', { name: chiffre }))
+    }
+    expect(modelisation()).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(modelisation())
+    expect(modelisation()).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByRole('heading', { name: /Code parent/ })).not.toBeInTheDocument()
+  })
+
+  it('s’arrête quand l’adulte reverrouille la tablette', async () => {
+    seedProfile('4321')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(modelisation())
+    for (const chiffre of '4321') {
+      await user.click(screen.getByRole('button', { name: chiffre }))
+    }
+    await user.click(screen.getByRole('button', { name: 'Paramètres' }))
+    await user.click(screen.getByRole('button', { name: /Parent$/ }))
+    await user.click(screen.getByRole('button', { name: 'Verrouiller maintenant' }))
+
+    expect(modelisation()).toHaveAttribute('aria-pressed', 'false')
   })
 })
 

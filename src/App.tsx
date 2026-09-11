@@ -18,6 +18,9 @@ import { GEOMETRIE, TABLEAU_TLA } from './data/tableauTla'
 
 export type { InstallPromptEvent }
 
+/** Ce que l'adulte a demandé à ouvrir, à exécuter une fois le code validé. */
+type IntentionParent = 'reglages' | 'profils' | 'modelisation'
+
 export default function App() {
   const {
     profiles,
@@ -67,7 +70,18 @@ export default function App() {
    * le verrou ne servirait plus à rien.
    */
   const [isParentMode, setIsParentMode] = useState(false)
-  const [demandeCode, setDemandeCode] = useState<null | 'reglages' | 'profils'>(null)
+  /**
+   * Mode modélisation : l'adulte touche les pictogrammes en parlant, pour
+   * montrer à l'enfant comment le tableau s'emploie. Chaque mot touché est dit
+   * et sa case s'illumine, mais il n'entre ni dans la phrase de l'enfant ni
+   * dans son historique — c'est l'adulte qui parle, pas l'enfant.
+   *
+   * En mémoire seulement, pour la même raison que le mode parent : un mode
+   * oublié actif laisserait l'enfant, au lancement suivant, devant une grille
+   * qui ne compose plus sa phrase.
+   */
+  const [isModelisation, setIsModelisation] = useState(false)
+  const [demandeCode, setDemandeCode] = useState<null | IntentionParent>(null)
   const [showInstallBanner, setShowInstallBanner] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -106,6 +120,16 @@ export default function App() {
   }
 
   const handlePictogramClick = (picto: PictogramItem) => {
+    if (isModelisation && activeProfile) {
+      // L'adulte montre : le mot est dit seul, sa case s'illumine, et la
+      // phrase de l'enfant reste la sienne. L'adulte formule la phrase de vive
+      // voix, comme il le ferait de toute façon en modélisant.
+      speak(picto.word, {
+        rate: activeProfile.settings.voiceRate,
+        volume: activeProfile.settings.voiceVolume,
+      })
+      return
+    }
     const item: SentenceItem = {
       key: `${picto.key}-${Date.now()}`,
       word: picto.word,
@@ -121,7 +145,7 @@ export default function App() {
    * Exécute une action réservée à l'adulte, ou demande le code d'abord.
    * `intention` retient ce qu'il faudra ouvrir une fois le code validé.
    */
-  const actionParent = (intention: 'reglages' | 'profils') => {
+  const actionParent = (intention: IntentionParent) => {
     if (estVerrouille) {
       setDemandeCode(intention)
       return
@@ -129,13 +153,30 @@ export default function App() {
     ouvrirEspaceParent(intention)
   }
 
-  const ouvrirEspaceParent = (intention: 'reglages' | 'profils') => {
-    if (intention === 'reglages') {
-      setShowSettings(true)
-      setShowHistory(false)
-    } else {
-      setActiveProfileId(null)
+  const ouvrirEspaceParent = (intention: IntentionParent) => {
+    switch (intention) {
+      case 'reglages':
+        setShowSettings(true)
+        setShowHistory(false)
+        break
+      case 'profils':
+        setActiveProfileId(null)
+        break
+      case 'modelisation':
+        setIsModelisation(true)
+        setShowHistory(false)
+        break
     }
+  }
+
+  /**
+   * Entrer demande le code, sortir non : un enfant qui active le mode par
+   * mégarde se retrouverait avec des touches qui n'ajoutent plus rien à sa
+   * phrase, alors qu'en sortir par mégarde ne fait que lui rendre sa grille.
+   */
+  const basculerModelisation = () => {
+    if (isModelisation) setIsModelisation(false)
+    else actionParent('modelisation')
   }
 
   const handleToggleFavorite = (picto: PictogramItem) => {
@@ -186,6 +227,7 @@ export default function App() {
   const handleSelectProfile = (id: string) => {
     setActiveProfileId(id)
     setSentence([])
+    setIsModelisation(false)
     // Chaque enfant retrouve son tableau par l'accueil, pas sur la page où le
     // précédent l'avait laissé.
     setActiveCategory(TABLEAU_TLA.pageRacine)
@@ -221,8 +263,16 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-violet-700 text-white shrink-0">
+      {/*
+        Top bar. Elle change de couleur en modélisation : l'adulte qui reprend
+        la tablette doit voir d'un coup d'œil que ses touches ne composeront
+        pas la phrase de l'enfant, sans chercher un indicateur plus discret.
+      */}
+      <div
+        className={`flex items-center justify-between px-3 py-2 text-white shrink-0 transition-colors ${
+          isModelisation ? 'bg-teal-700' : 'bg-violet-700'
+        }`}
+      >
         {/*
           `min-w-0` sur le bouton et `shrink-0` sur les actions : c'est le
           prénom qui se tronque quand la place manque, jamais les boutons qui
@@ -247,6 +297,31 @@ export default function App() {
               📲 Installer
             </button>
           )}
+          {/*
+            Actif, le bouton s'élargit et dit comment sortir : un mode dont on
+            ne voit pas l'issue inquiète plus qu'il ne sert.
+          */}
+          <button
+            onClick={basculerModelisation}
+            className={`h-11 rounded-xl flex items-center justify-center gap-1.5 active:scale-95 ${
+              isModelisation ? 'bg-white text-teal-800 px-3 text-sm font-bold' : 'w-11 bg-white/15 text-xl'
+            }`}
+            aria-label="Mode modélisation"
+            aria-pressed={isModelisation}
+          >
+            {/* 👆 et non 🧑‍🏫 : cette séquence composée s'affiche en deux
+                glyphes (🧑 🏫) là où le système ne la connaît pas, Windows 10
+                compris. Un caractère unique s'affiche partout. */}
+            <span aria-hidden="true">👆</span>
+            {/* Libellé réservé aux écrans larges : sur un téléphone de 360 px,
+                il pousserait les autres boutons hors de la barre. La croix, la
+                couleur et le bouton blanc suffisent à dire comment sortir. */}
+            {isModelisation && (
+              <span aria-hidden="true">
+                <span className="hidden sm:inline">Modélisation </span>✕
+              </span>
+            )}
+          </button>
           {/*
             La recherche reste accessible sans code : elle ne modifie rien, et
             son intérêt est justement d'aller vite au milieu d'un échange.
@@ -348,6 +423,7 @@ export default function App() {
                         // ouverte depuis le lot favoris — un enfant qui vise son
                         // mot touchait l'étoile d'à côté et n'entendait rien.
                         showFavorite={!estVerrouille}
+                        illuminer={isModelisation}
                       />
                     )
                   case 'navigation':
@@ -390,7 +466,10 @@ export default function App() {
           parentPin={parentPin}
           onSetParentPin={setParentPin}
           onLock={() => {
+            // Verrouiller, c'est rendre la tablette à l'enfant : la
+            // modélisation s'arrête avec le reste de l'espace adulte.
             setIsParentMode(false)
+            setIsModelisation(false)
             setShowSettings(false)
           }}
           profile={activeProfile}

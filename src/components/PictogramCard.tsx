@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { PictogramItem, ProfileSettings, TailleCase } from '../types'
 import { usePictogramImage } from '../hooks/usePictogramImage'
 import { getStyleCase } from '../data/classesGrammaticales'
@@ -12,7 +13,23 @@ interface Props {
   onToggleFavorite: (picto: PictogramItem) => void
   /** Retirée hors mode parent : l'enfant ne doit pas pouvoir la toucher. */
   showFavorite?: boolean
+  /**
+   * Mode modélisation : la case s'illumine quand l'adulte la touche, pour que
+   * l'enfant voie *où* se trouve le mot qu'il entend.
+   */
+  illuminer?: boolean
 }
+
+/**
+ * Halo qui s'élargit puis s'efface, sans mouvement de la carte : un zoom se
+ * superposerait à l'enfoncement de `.picto-card:active`. Joué par l'API Web
+ * Animations plutôt que par une classe CSS, pour repartir de zéro à chaque
+ * appui — l'adulte touche souvent deux fois de suite le même mot.
+ */
+const ILLUMINATION: Keyframe[] = [
+  { boxShadow: '0 0 0 0 rgba(13, 148, 136, 0.95)', outline: '4px solid #0D9488' },
+  { boxShadow: '0 0 0 18px rgba(13, 148, 136, 0)', outline: '4px solid rgba(13, 148, 136, 0)' },
+]
 
 export default function PictogramCard({
   picto,
@@ -21,7 +38,9 @@ export default function PictogramCard({
   onClick,
   onToggleFavorite,
   showFavorite = true,
+  illuminer = false,
 }: Props) {
+  const bouton = useRef<HTMLButtonElement>(null)
   const { src, failed, onError } = usePictogramImage(picto.imageUrl, picto.arasaacId)
   const s = STYLE_TAILLE[size]
   // Les couleurs viennent d'une propriété du pictogramme — sa classe
@@ -37,9 +56,15 @@ export default function PictogramCard({
     // déborderait sur sa voisine du dessous.
     <div className="relative h-full w-full">
       <button
+        ref={bouton}
         className={`picto-card flex h-full w-full flex-col items-center rounded-2xl border-2 ${s.padding}`}
         style={{ backgroundColor: bgColor, borderColor }}
-        onClick={() => onClick(picto)}
+        onClick={() => {
+          // `animate` manque à jsdom et à de très vieilles WebView : sans lui,
+          // le mot est dit quand même, seul le halo manque.
+          if (illuminer) bouton.current?.animate?.(ILLUMINATION, { duration: 900, easing: 'ease-out' })
+          onClick(picto)
+        }}
         aria-label={picto.word}
       >
         {/*
