@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { Capacitor } from '@capacitor/core'
-import { selectVoice, useSpeech } from './useSpeech'
+import {
+  diagnostiquerEchecNatif,
+  diagnostiquerEchecWeb,
+  selectVoice,
+  useSpeech,
+} from './useSpeech'
 
 // Les méthodes du greffon sont servies par un proxy : `vi.spyOn` n'a rien à
 // quoi s'accrocher, d'où le remplacement du module entier.
@@ -68,6 +73,54 @@ describe('selectVoice', () => {
   })
 })
 
+/** Un refus du greffon, tel que Capacitor le transmet : un `Error` avec un code facultatif. */
+function refusDuGreffon(message: string, code?: string) {
+  return Object.assign(new Error(message), code ? { code } : {})
+}
+
+describe('diagnostiquerEchecNatif', () => {
+  // Les trois messages sont ceux de `TextToSpeechPlugin.java`, recopiés tels quels.
+  it('reconnaît un moteur absent ou pas encore démarré', () => {
+    const erreur = refusDuGreffon('Not yet initialized or not available on this device.', 'UNAVAILABLE')
+    expect(diagnostiquerEchecNatif(erreur)).toEqual({
+      cause: 'moteur',
+      detail: 'Not yet initialized or not available on this device.',
+    })
+  })
+
+  it('reconnaît une voix française absente', () => {
+    expect(diagnostiquerEchecNatif(refusDuGreffon('This language is not supported.')).cause).toBe(
+      'langue',
+    )
+  })
+
+  it('reconnaît un échec en cours de lecture', () => {
+    expect(diagnostiquerEchecNatif(refusDuGreffon('Failed to read text.')).cause).toBe('lecture')
+  })
+
+  it('garde le message d’origine d’un échec inconnu', () => {
+    // Greffon absent du binaire, par exemple : le détail seul permet de le voir.
+    const erreur = refusDuGreffon('"TextToSpeech" plugin is not implemented on android', 'UNIMPLEMENTED')
+    expect(diagnostiquerEchecNatif(erreur)).toEqual({
+      cause: 'inconnue',
+      detail: '"TextToSpeech" plugin is not implemented on android',
+    })
+  })
+})
+
+describe('diagnostiquerEchecWeb', () => {
+  it('ne signale pas une phrase coupée par la suivante', () => {
+    expect(diagnostiquerEchecWeb('interrupted')).toBeNull()
+    expect(diagnostiquerEchecWeb('canceled')).toBeNull()
+  })
+
+  it('distingue le moteur, la langue et la lecture', () => {
+    expect(diagnostiquerEchecWeb('synthesis-unavailable')?.cause).toBe('moteur')
+    expect(diagnostiquerEchecWeb('language-unavailable')?.cause).toBe('langue')
+    expect(diagnostiquerEchecWeb('synthesis-failed')?.cause).toBe('lecture')
+  })
+})
+
 describe('useSpeech — chemin natif', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -97,6 +150,24 @@ describe('useSpeech — chemin natif', () => {
       }),
     )
     expect(parleWeb).not.toHaveBeenCalled()
+  })
+
+  it('rend l’échec du moteur, puis le retire quand une phrase est enfin dite', async () => {
+    // Le défaut corrigé : l'application restait muette sans rien afficher,
+    // l'échec ne partant que dans le journal du système.
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    stopNatif.mockResolvedValue(undefined)
+    parleNatif.mockRejectedValueOnce(refusDuGreffon('This language is not supported.'))
+
+    const { result } = renderHook(() => useSpeech())
+    act(() => result.current.speak('bonjour'))
+    await waitFor(() => expect(result.current.echec?.cause).toBe('langue'))
+    expect(result.current.isSpeaking).toBe(false)
+
+    parleNatif.mockResolvedValueOnce(undefined)
+    act(() => result.current.speak('bonjour'))
+    await waitFor(() => expect(result.current.echec).toBeNull())
   })
 
   it('garde le chemin navigateur hors application empaquetée', () => {

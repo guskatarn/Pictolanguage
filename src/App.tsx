@@ -20,6 +20,7 @@ import HistoryPanel from './components/HistoryPanel'
 import SearchPanel from './components/SearchPanel'
 import SettingsPanel from './components/SettingsPanel'
 import StorageAlert from './components/StorageAlert'
+import AlerteVoix from './components/AlerteVoix'
 import ParentGate from './components/ParentGate'
 import { FAVORITES_CATEGORY_ID } from './data/defaultCategories'
 import { GEOMETRIE, TABLEAU_TLA } from './data/tableauTla'
@@ -63,7 +64,7 @@ export default function App() {
     searchPictograms,
     searchArasaac,
   } = usePictograms(activeProfile)
-  const { speak, isSpeaking } = useSpeech()
+  const { speak, isSpeaking, echec: echecVoix, oublierEchec } = useSpeech()
 
   const [activeCategory, setActiveCategory] = useState(TABLEAU_TLA.pageRacine)
   const [sentence, setSentence] = useState<SentenceItem[]>([])
@@ -522,6 +523,7 @@ export default function App() {
         />
       )}
 
+      {echecVoix && <AlerteVoix echec={echecVoix} onDismiss={oublierEchec} />}
       {storageAlert}
     </div>
   )

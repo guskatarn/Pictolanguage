@@ -7,12 +7,27 @@ import App from './App'
  * La synthèse est remplacée par un espion : jsdom n'a pas de voix, et le mode
  * modélisation se vérifie justement à ce qu'il **dit** sans rien composer.
  */
-const { parle } = vi.hoisted(() => ({ parle: vi.fn() }))
+const { parle, oublierEchec, voix } = vi.hoisted(() => ({
+  parle: vi.fn(),
+  oublierEchec: vi.fn(),
+  voix: { echec: null as null | { cause: 'langue'; detail: string } },
+}))
 vi.mock('./hooks/useSpeech', () => ({
-  useSpeech: () => ({ speak: parle, cancel: vi.fn(), isSpeaking: false, isSupported: true }),
+  useSpeech: () => ({
+    speak: parle,
+    cancel: vi.fn(),
+    isSpeaking: false,
+    isSupported: true,
+    echec: voix.echec,
+    oublierEchec,
+  }),
 }))
 
-beforeEach(() => parle.mockClear())
+beforeEach(() => {
+  parle.mockClear()
+  oublierEchec.mockClear()
+  voix.echec = null
+})
 import { makePageFavoris, makeProfile } from './test/factories'
 import { TABLEAU_TLA } from './data/tableauTla'
 import { nombreDeSlots } from './utils/pages'
@@ -56,6 +71,30 @@ describe('App — la phrase composée', () => {
     await user.click(screen.getByRole('button', { name: 'Tout effacer' }))
 
     expect(screen.queryByRole('button', { name: 'Retirer manger' })).not.toBeInTheDocument()
+  })
+})
+
+describe('App — échec de la voix', () => {
+  it("montre à l'adulte la cause et le détail de l'échec", async () => {
+    // Régression visée : sur le téléphone de l'éditeur, l'application restait
+    // muette sans rien afficher, l'échec ne partant que dans le journal Android.
+    voix.echec = { cause: 'langue', detail: 'This language is not supported.' }
+    seedProfile()
+    const user = userEvent.setup()
+    render(<App />)
+
+    const alerte = screen.getByRole('alert')
+    expect(alerte).toHaveTextContent("La voix française n'est pas installée")
+    expect(alerte).toHaveTextContent('This language is not supported.')
+
+    await user.click(screen.getByRole('button', { name: "J'ai compris" }))
+    expect(oublierEchec).toHaveBeenCalled()
+  })
+
+  it("n'affiche rien quand la voix fonctionne", () => {
+    seedProfile()
+    render(<App />)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
 

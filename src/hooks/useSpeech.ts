@@ -35,6 +35,55 @@ export function selectVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoic
 }
 
 /**
+ * Pourquoi la voix n'est pas sortie, en des termes sur lesquels l'adulte peut
+ * agir : chaque cause renvoie à un geste différent dans les réglages.
+ */
+export type CauseEchecVoix = 'moteur' | 'langue' | 'lecture' | 'inconnue'
+
+export interface EchecVoix {
+  cause: CauseEchecVoix
+  /** Le message d'origine, tel quel : c'est lui qui permet un diagnostic à distance. */
+  detail: string
+}
+
+/**
+ * Traduit un refus du greffon de synthèse vocale d'Android. Le greffon ne
+ * distingue ses échecs que par leur message (voir `TextToSpeechPlugin.java`),
+ * d'où la comparaison de textes.
+ */
+export function diagnostiquerEchecNatif(erreur: unknown): EchecVoix {
+  const detail = erreur instanceof Error ? erreur.message : String(erreur)
+  const code = (erreur as { code?: unknown } | null)?.code
+  // Moteur absent, désactivé, ou pas encore démarré.
+  if (code === 'UNAVAILABLE' || /not available|not yet initialized/i.test(detail)) {
+    return { cause: 'moteur', detail }
+  }
+  if (/language is not supported/i.test(detail)) return { cause: 'langue', detail }
+  if (/failed to read text/i.test(detail)) return { cause: 'lecture', detail }
+  return { cause: 'inconnue', detail }
+}
+
+/**
+ * Même traduction pour le chemin navigateur, à partir du code d'erreur de
+ * l'API Web Speech. `null` quand ce n'est pas un échec : une phrase coupée par
+ * la suivante lève `interrupted` ou `canceled`, et c'est voulu.
+ */
+export function diagnostiquerEchecWeb(code: string): EchecVoix | null {
+  switch (code) {
+    case 'interrupted':
+    case 'canceled':
+      return null
+    case 'synthesis-unavailable':
+      return { cause: 'moteur', detail: code }
+    case 'language-unavailable':
+    case 'voice-unavailable':
+      return { cause: 'langue', detail: code }
+    default:
+      return { cause: 'lecture', detail: code }
+  }
+}
+
+/**
  * Lecture à voix haute, par deux chemins distincts.
  *
  * **Dans l'application empaquetée**, la synthèse passe par le moteur de
@@ -46,9 +95,14 @@ export function selectVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoic
  *
  * **Dans un navigateur** (développement, version web installable), on garde
  * `window.speechSynthesis` et le choix de voix ci-dessus.
+ *
+ * Un échec est rendu dans `echec`, pour être montré à l'adulte : sans cela
+ * l'application reste muette sans rien dire, et ni l'enfant ni l'adulte ne
+ * peuvent savoir si c'est le volume, le moteur ou la langue qui manque.
  */
 export function useSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [echec, setEchec] = useState<EchecVoix | null>(null)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const voicesRef = useRef<SpeechSynthesisVoice[]>([])
   const isNative = Capacitor.isNativePlatform()
@@ -91,13 +145,14 @@ export function useSpeech() {
             }),
           )
           // La promesse ne se résout qu'à la fin de l'énoncé : c'est elle qui
-          // rend l'animation du bouton fidèle à ce qu'on entend.
+          // rend l'animation du bouton fidèle à ce qu'on entend. Une phrase
+          // enfin dite retire l'alerte : l'adulte a réparé ce qui manquait.
+          .then(() => setEchec(null))
           .catch((erreur) => {
-            // Un échec ici est silencieux pour l'enfant, qui n'a aucun moyen
-            // de comprendre pourquoi rien ne sort. La trace part dans le
-            // journal du système (`adb logcat`), seul endroit où l'on peut
-            // distinguer un moteur absent d'une langue non installée.
+            // Montré à l'adulte, et gardé aussi dans le journal du système
+            // (`adb logcat`) pour un diagnostic sur appareil.
             console.error('[disavecmoi] synthèse vocale indisponible :', erreur)
+            setEchec(diagnostiquerEchecNatif(erreur))
           })
           .finally(() => setIsSpeaking(false))
         return
@@ -118,8 +173,15 @@ export function useSpeech() {
       if (voice) utterance.voice = voice
 
       utterance.onstart = () => setIsSpeaking(true)
-      utterance.onend = () => setIsSpeaking(false)
-      utterance.onerror = () => setIsSpeaking(false)
+      utterance.onend = () => {
+        setIsSpeaking(false)
+        setEchec(null)
+      }
+      utterance.onerror = (evenement) => {
+        setIsSpeaking(false)
+        const diagnostic = diagnostiquerEchecWeb(evenement.error)
+        if (diagnostic) setEchec(diagnostic)
+      }
 
       utteranceRef.current = utterance
       window.speechSynthesis.speak(utterance)
@@ -137,5 +199,7 @@ export function useSpeech() {
     setIsSpeaking(false)
   }, [isSupported, isNative])
 
-  return { speak, cancel, isSpeaking, isSupported }
+  const oublierEchec = useCallback(() => setEchec(null), [])
+
+  return { speak, cancel, isSpeaking, isSupported, echec, oublierEchec }
 }
