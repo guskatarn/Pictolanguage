@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Category, RefSlot, UserProfile } from '../types'
-import { trouverPage } from '../data/tableauTla'
+import { TABLEAU_TLA, trouverPage } from '../data/tableauTla'
 import { motsDeLaPage } from '../utils/vocabulaire'
 
 interface Props {
@@ -20,6 +20,9 @@ interface Props {
  * Le masquage porte désormais sur **une case**, pas sur un mot. Un même mot
  * occupe souvent plusieurs cases du tableau, et l'ancien masquage par
  * identifiant les emportait toutes d'un coup, sans que rien ne l'annonce.
+ *
+ * L'accueil est listé en tête pour qu'on puisse y masquer des cases, mais sans
+ * flèches : il reste le premier onglet quoi qu'il arrive.
  */
 export default function CategoryManager({
   profile,
@@ -45,10 +48,12 @@ export default function CategoryManager({
         autres gardent leur place, que l'enfant a appris à reconnaître.
       </p>
 
-      {profile.ordrePages.map((pageId, idx) => {
+      {[TABLEAU_TLA.pageRacine, ...profile.ordrePages].map((pageId, rang) => {
         const page = trouverPage(pageId)
         const cat = categories.find((c) => c.id === pageId)
         if (!page) return null
+        // Rang dans l'ordre réordonnable ; -1 pour l'accueil, qui n'y figure pas.
+        const idx = rang - 1
 
         const poses = motsDeLaPage(page, profile)
         const hiddenCount = poses.filter((p) => profile.slotsMasques.includes(p.ref)).length
@@ -69,22 +74,26 @@ export default function CategoryManager({
                   </span>
                 )}
               </span>
-              <button
-                onClick={() => movePage(idx, -1)}
-                disabled={idx === 0}
-                className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center disabled:opacity-30"
-                aria-label={`Monter ${page.titre}`}
-              >
-                ↑
-              </button>
-              <button
-                onClick={() => movePage(idx, 1)}
-                disabled={idx === profile.ordrePages.length - 1}
-                className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center disabled:opacity-30"
-                aria-label={`Descendre ${page.titre}`}
-              >
-                ↓
-              </button>
+              {idx >= 0 && (
+                <>
+                  <button
+                    onClick={() => movePage(idx, -1)}
+                    disabled={idx === 0}
+                    className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center disabled:opacity-30"
+                    aria-label={`Monter ${page.titre}`}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => movePage(idx, 1)}
+                    disabled={idx === profile.ordrePages.length - 1}
+                    className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center disabled:opacity-30"
+                    aria-label={`Descendre ${page.titre}`}
+                  >
+                    ↓
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => setExpanded(isOpen ? null : pageId)}
                 className="w-8 h-8 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center font-bold"

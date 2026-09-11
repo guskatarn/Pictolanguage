@@ -78,8 +78,40 @@ describe('App — couleur des pictogrammes', () => {
 
     expect(screen.getByRole('button', { name: 'manger' })).toHaveStyle({ backgroundColor: fond })
 
-    await user.click(screen.getByRole('button', { name: /Favoris/ }))
+    await user.click(screen.getByRole('button', { name: '⭐ Favoris' }))
     expect(screen.getByRole('button', { name: 'manger' })).toHaveStyle({ backgroundColor: fond })
+  })
+})
+
+describe('App — page d’accueil', () => {
+  it('s’ouvre sur l’accueil, qui porte les mots de l’ancienne barre rapide', () => {
+    seedProfile()
+    render(<App />)
+    expect(screen.getByRole('button', { name: '🏠 Accueil' })).toHaveAttribute('aria-selected', 'true')
+    for (const mot of ['oui', 'non', 'stop', 'encore', 'moi', 'vouloir']) {
+      expect(screen.getByRole('button', { name: mot })).toBeInTheDocument()
+    }
+  })
+
+  it('ouvre une page par sa case de navigation, sans rien ajouter à la phrase', async () => {
+    seedProfile()
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Ouvrir la page Lieux' }))
+
+    expect(screen.getByRole('button', { name: 'Lieux' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('button', { name: 'école' })).toBeInTheDocument()
+    expect(screen.getByText('Sélectionne des pictogrammes...')).toBeInTheDocument()
+  })
+
+  it('ouvre aussi les favoris, qui ne sont pas une page du tableau', async () => {
+    seedProfile()
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Ouvrir la page Favoris' }))
+    expect(screen.getByText('Aucun favori pour le moment')).toBeInTheDocument()
   })
 })
 
@@ -139,10 +171,20 @@ describe('App — positions stables', () => {
     return render(<App />)
   }
 
-  /** Position de chaque case de la grille, un libellé ou `null` pour un trou. */
+  /**
+   * Position de chaque case de la grille, un libellé ou `null` pour un trou.
+   *
+   * Le libellé est lu sur le **premier bouton** de la case : une carte de mot
+   * enveloppe son bouton dans un conteneur (l'étoile en est le frère), si bien
+   * que lire l'attribut sur l'enfant direct de la grille renvoyait `null`
+   * partout — et le test comparait deux listes de trous.
+   */
   function dispositionDe(container: HTMLElement): (string | null)[] {
     const grille = container.querySelector('.picto-grid')!
-    return [...grille.children].map((c) => c.getAttribute('aria-label'))
+    return [...grille.children].map((c) => {
+      const bouton = c.matches('button') ? c : c.querySelector('button')
+      return bouton?.getAttribute('aria-label') ?? null
+    })
   }
 
   it('rend la grille à la géométrie déclarée par le tableau', () => {
@@ -156,20 +198,22 @@ describe('App — positions stables', () => {
   })
 
   it('laisse une case vide à la place d’un pictogramme masqué, sans rien décaler', () => {
-    // Sans cela, masquer « manger » remontait « boire » à sa place, et tout le
+    // Sans cela, masquer « oui » remontait « non » à sa place, et tout le
     // reste d'un cran : l'enfant perdait les repères moteurs qu'il avait
-    // construits.
+    // construits. Adresse écrite en clair : première case de l'accueil.
     const { container, unmount } = monterAvec(makeProfile())
     const avant = dispositionDe(container)
     unmount()
 
-    const { container: apres } = monterAvec(makeProfile({ slotsMasques: ['besoins#0'] }))
+    const { container: apres } = monterAvec(makeProfile({ slotsMasques: ['accueil#0'] }))
     const dispo = dispositionDe(apres)
 
-    expect(screen.queryByRole('button', { name: 'manger' })).not.toBeInTheDocument()
-    // La case de « manger » est vide ; toutes les autres sont inchangées.
+    expect(avant[0]).toBe('oui')
+    expect(screen.queryByRole('button', { name: 'oui' })).not.toBeInTheDocument()
+    // La case de « oui » est vide ; toutes les autres sont inchangées.
     expect(dispo[0]).toBeNull()
     expect(dispo.slice(1)).toEqual(avant.slice(1))
+    expect(dispo[1]).toBe('non')
   })
 
   it('garde le même nombre de colonnes quel que soit le réglage de taille', () => {

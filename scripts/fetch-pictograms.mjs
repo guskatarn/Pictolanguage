@@ -43,13 +43,9 @@ function extractIds(relPath) {
   return [...src.matchAll(/\b(?:id|arasaacId):\s*(\d+)/g)].map((m) => Number(m[1]))
 }
 
-const ids = [
-  ...new Set([
-    ...extractIds('src/data/lexique.ts'),
-    ...extractIds('src/data/defaultPictograms.ts'),
-    ...extractIds('src/data/coreVocabulary.ts'),
-  ]),
-].sort((a, b) => a - b)
+// Le lexique est la seule source d'images : le tableau n'y fait référence que
+// par identifiant de mot, et ses cases de navigation portent un emoji.
+const ids = [...new Set(extractIds('src/data/lexique.ts'))].sort((a, b) => a - b)
 
 mkdirSync(outDir, { recursive: true })
 

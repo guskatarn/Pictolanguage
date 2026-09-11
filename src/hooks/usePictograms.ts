@@ -1,8 +1,12 @@
 import { useMemo } from 'react'
-import { UserProfile, PictogramItem, Category, Page } from '../types'
-import { getArasaacImageUrl } from '../data/defaultPictograms'
+import { UserProfile, PictogramItem, Category, Page, CaseGrille } from '../types'
+import { getArasaacImageUrl } from '../utils/arasaac'
 import { TABLEAU_TLA, trouverPage } from '../data/tableauTla'
-import { DEFAULT_CATEGORIES, FAVORITES_CATEGORY } from '../data/defaultCategories'
+import {
+  ACCUEIL_CATEGORY,
+  DEFAULT_CATEGORIES,
+  FAVORITES_CATEGORY,
+} from '../data/defaultCategories'
 import { lireRefSlot, refSlot } from '../utils/pages'
 import { motDeLaCase, MotPose } from '../utils/vocabulaire'
 
@@ -30,6 +34,7 @@ function versItem(
   return {
     key: cle,
     word: entree.mot,
+    lexiqueId: entree.id,
     arasaacId: entree.arasaacId,
     // Image stockée pour un mot ajouté par le parent, banque ARASAAC sinon.
     // Un mot sans l'une ni l'autre n'existe pas : `EntreeLexique` en porte
@@ -40,7 +45,10 @@ function versItem(
     isCustom,
     customId: isCustom ? entree.id : undefined,
     isFavorite: profile?.pageFavoris.includes(ref) ?? false,
-    categoryId: page.theme,
+    // Le thème du mot, pas celui de la page : « manger » garde sa couleur des
+    // Besoins jusque sur l'accueil. La page ne sert qu'aux mots du parent, qui
+    // n'ont pas de thème à eux.
+    categoryId: entree.theme ?? page.theme,
     classeGrammaticale: entree.classeGrammaticale,
     refSlot: ref,
     isHidden: profile?.slotsMasques.includes(ref) ?? false,
@@ -48,7 +56,8 @@ function versItem(
 }
 
 export function usePictograms(activeProfile: UserProfile | null) {
-  const categories: Category[] = useMemo(() => {
+  /** Pages thématiques, dans l'ordre choisi par le parent. */
+  const themes: Category[] = useMemo(() => {
     // Une page absente de l'ordre du profil (ajoutée par une mise à jour
     // postérieure à la création du profil) est placée à la fin. Se fier au -1
     // d'`indexOf` la ferait au contraire surgir en première position, devant
@@ -62,6 +71,9 @@ export function usePictograms(activeProfile: UserProfile | null) {
       : DEFAULT_CATEGORIES
   }, [activeProfile])
 
+  /** Pages de rangement : destinations possibles d'un mot ajouté par le parent. */
+  const categories: Category[] = useMemo(() => [ACCUEIL_CATEGORY, ...themes], [themes])
+
   /**
    * Onglets affichés au-dessus de la grille.
    *
@@ -70,10 +82,13 @@ export function usePictograms(activeProfile: UserProfile | null) {
    * destination lors de l'ajout d'un pictogramme, qui atterrissait alors dans
    * une page inexistante et n'apparaissait plus nulle part.
    *
-   * Les favoris restent en tête et hors de l'ordre personnalisable : leur
-   * position ne doit jamais bouger, y compris quand le parent réordonne.
+   * Accueil puis favoris restent en tête et hors de l'ordre personnalisable :
+   * leur position ne doit jamais bouger, y compris quand le parent réordonne.
    */
-  const tabs: Category[] = useMemo(() => [FAVORITES_CATEGORY, ...categories], [categories])
+  const tabs: Category[] = useMemo(
+    () => [ACCUEIL_CATEGORY, FAVORITES_CATEGORY, ...themes],
+    [themes],
+  )
 
   /**
    * Contenu d'une page, **case par case** : le tableau renvoyé a exactement la
@@ -85,13 +100,27 @@ export function usePictograms(activeProfile: UserProfile | null) {
    * le trou et déplacerait tout ce qui suit.
    */
   const casesDeLaPage = useMemo(() => {
-    return (pageId: string): (PictogramItem | null)[] => {
+    return (pageId: string): (CaseGrille | null)[] => {
       const page = trouverPage(pageId)
       if (!page) return []
 
-      return page.slots.map((_, index) => {
-        const mot = motDeLaCase(page, index, activeProfile)
-        return mot ? versItem(page, index, mot, activeProfile, `${page.id}-${index}`) : null
+      return page.slots.map((slot, index): CaseGrille | null => {
+        switch (slot?.type) {
+          case 'navigation':
+            return { ...slot, key: `${page.id}-${index}` }
+          // Aucune case de commande n'est encore posée dans le tableau ; leur
+          // rendu arrivera avec elles. D'ici là, la place reste vide.
+          case 'commande':
+            return null
+          default: {
+            // Case de vocabulaire, ou case libre qui porte peut-être un mot
+            // ajouté par le parent.
+            const mot = motDeLaCase(page, index, activeProfile)
+            return mot
+              ? { type: 'mot', picto: versItem(page, index, mot, activeProfile, `${page.id}-${index}`) }
+              : null
+          }
+        }
       })
     }
   }, [activeProfile])
@@ -109,10 +138,10 @@ export function usePictograms(activeProfile: UserProfile | null) {
    * réapparaître nulle part.
    */
   const casesFavorites = useMemo(() => {
-    return (): (PictogramItem | null)[] => {
+    return (): (CaseGrille | null)[] => {
       if (!activeProfile) return []
 
-      return activeProfile.pageFavoris.map((ref) => {
+      return activeProfile.pageFavoris.map((ref): CaseGrille | null => {
         if (!ref || activeProfile.slotsMasques.includes(ref)) return null
         const adresse = lireRefSlot(ref)
         const page = adresse ? trouverPage(adresse.pageId) : undefined
@@ -121,7 +150,7 @@ export function usePictograms(activeProfile: UserProfile | null) {
         if (!mot) return null
         // La couleur suit le pictogramme jusque dans les favoris : sans cela,
         // l'onglet repeignait toute la grille en jaune.
-        return versItem(page, adresse.index, mot, activeProfile, `favori-${ref}`)
+        return { type: 'mot', picto: versItem(page, adresse.index, mot, activeProfile, `favori-${ref}`) }
       })
     }
   }, [activeProfile])
@@ -138,15 +167,27 @@ export function usePictograms(activeProfile: UserProfile | null) {
    *
    * Les cases masquées en sont exclues : un mot écarté par le parent ne doit
    * ressurgir par aucun chemin.
+   *
+   * Un mot posé sur plusieurs pages (« manger » sur l'accueil et dans les
+   * Besoins) n'est proposé qu'une fois : l'adulte cherche un mot, pas une case.
+   * Le masquage est appliqué avant le dédoublonnage, sans quoi masquer
+   * l'exemplaire de l'accueil ferait disparaître aussi celui des Besoins.
    */
   const searchPictograms = useMemo(() => {
     return (requete: string): PictogramItem[] => {
       const terme = sansAccents(requete)
       if (terme.length === 0) return []
+      const vus = new Set<string>()
       return TABLEAU_TLA.pages
         .flatMap((page) => casesDeLaPage(page.id))
-        .filter((p): p is PictogramItem => p !== null)
+        .flatMap((c) => (c?.type === 'mot' ? [c.picto] : []))
         .filter((p) => !p.isHidden && sansAccents(p.word).includes(terme))
+        .filter((p) => {
+          const id = p.lexiqueId ?? p.key
+          if (vus.has(id)) return false
+          vus.add(id)
+          return true
+        })
     }
   }, [casesDeLaPage])
 

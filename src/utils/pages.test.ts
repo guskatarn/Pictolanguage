@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  casesEnRangees,
   construirePage,
   indexDepuis,
   lireRefSlot,
@@ -86,6 +87,24 @@ describe('construirePage', () => {
     expect(() =>
       construirePage({ id: 'a#b', titre: 'P', geometrie: GEO, cases: {} }),
     ).toThrow(/Identifiant de page invalide/)
+  })
+})
+
+describe('casesEnRangees', () => {
+  it('pose chaque case à la ligne et à la colonne où elle est écrite', () => {
+    const cases = casesEnRangees(GEO, [
+      [mot('oui'), null, mot('non')],
+      [],
+      [null, mot('moi')],
+    ])
+    expect(cases).toEqual({ 0: mot('oui'), 2: mot('non'), 9: mot('moi') })
+  })
+
+  it('refuse une rangée plus longue que la grille', () => {
+    // Elle déborderait sur la rangée suivante, et tout ce qui suit glisserait.
+    expect(() =>
+      casesEnRangees(GEO, [[mot('a'), mot('b'), mot('c'), mot('d'), mot('e')]]),
+    ).toThrow(/5 cases pour 4 colonnes/)
   })
 })
 

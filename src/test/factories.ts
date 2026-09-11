@@ -27,7 +27,6 @@ export function makeProfile(overrides: Partial<UserProfile> = {}): UserProfile {
       modeCouleur: 'grammatical',
       formulation: 'naturelle',
       accord: 'masculin',
-      showCoreBar: true,
     },
     ...overrides,
   }

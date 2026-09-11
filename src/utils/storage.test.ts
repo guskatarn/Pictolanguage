@@ -28,7 +28,6 @@ const data: StoredData = {
         modeCouleur: 'thematique',
         formulation: 'brute',
         accord: 'feminin',
-        showCoreBar: false,
       },
     }),
   ],
@@ -102,7 +101,7 @@ describe('saveData / loadData', () => {
       JSON.stringify({ schemaVersion: 2, profiles: [{ id: 'x', name: 'Neuf' }], activeProfileId: 'x' }),
     )
     const profil = loadData().profiles[0]
-    expect(profil.settings.showCoreBar).toBe(true)
+    expect(profil.settings.tailleCase).toBe('M')
     expect(profil.settings.modeCouleur).toBe('grammatical')
     expect(profil.ordrePages.length).toBeGreaterThan(1)
     expect(profil.lexiquePerso).toEqual([])
@@ -126,6 +125,20 @@ describe('saveData / loadData', () => {
     const ordre = loadData().profiles[0].ordrePages
     expect(ordre.slice(0, 2)).toEqual(['objets', 'besoins'])
     expect(ordre).toHaveLength(ORDRE_PAGES_PAR_DEFAUT.length)
+  })
+
+  it('retire l’accueil de l’ordre réordonnable s’il s’y trouve', () => {
+    // L'accueil reste en tête des onglets quoi qu'il arrive : le laisser dans
+    // l'ordre du parent le ferait apparaître deux fois dans les réglages.
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: 2,
+        profiles: [{ id: 'x', name: 'Neuf', ordrePages: ['objets', 'accueil', 'besoins'] }],
+        activeProfileId: 'x',
+      }),
+    )
+    expect(loadData().profiles[0].ordrePages).not.toContain('accueil')
   })
 
   it('neutralise un activeProfileId qui ne désigne aucun profil', () => {

@@ -36,6 +36,15 @@ describe('CategoryManager — ordre des pages', () => {
     await user.click(screen.getByRole('button', { name: /Descendre Besoins/i }))
     expect(onReorderCategories).toHaveBeenCalledWith(['emotions', 'besoins'])
   })
+
+  it('liste l’accueil en tête, sans flèches pour le déplacer', () => {
+    // Il reste le premier onglet quoi qu'il arrive, mais ses cases doivent
+    // pouvoir être masquées comme les autres.
+    setup()
+    expect(screen.getByRole('button', { name: /Gérer les pictogrammes de Accueil/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Monter Accueil/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Descendre Accueil/i })).not.toBeInTheDocument()
+  })
 })
 
 describe('CategoryManager — pictogrammes affichés', () => {

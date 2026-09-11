@@ -53,9 +53,11 @@ describe('SearchPanel', () => {
 
   it('n’exhume pas un pictogramme masqué par le parent', async () => {
     // Un mot écarté ne doit ressurgir par aucun chemin, la recherche comprise.
-    const { user } = monter(makeProfile({ slotsMasques: ['besoins#0'] }))
-    await user.type(screen.getByLabelText('Mot à chercher'), 'manger')
-    expect(screen.queryByRole('button', { name: 'manger' })).not.toBeInTheDocument()
+    // « toilettes » n'est posé qu'une fois (besoins#2) : un mot présent sur
+    // plusieurs pages reste trouvable tant qu'une de ses cases est visible.
+    const { user } = monter(makeProfile({ slotsMasques: ['besoins#2'] }))
+    await user.type(screen.getByLabelText('Mot à chercher'), 'toilettes')
+    expect(screen.queryByRole('button', { name: 'toilettes' })).not.toBeInTheDocument()
     expect(screen.getByText(/Aucun pictogramme/)).toBeInTheDocument()
   })
 

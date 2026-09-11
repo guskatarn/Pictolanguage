@@ -52,7 +52,6 @@ function createDefaultProfile(name: string, avatar: string): UserProfile {
       modeCouleur: 'grammatical',
       formulation: 'naturelle',
       accord: 'masculin',
-      showCoreBar: true,
     },
   }
 }
@@ -201,7 +200,7 @@ export function useProfiles() {
    * La distinction est le cœur du modèle : un même mot occupe souvent
    * plusieurs cases du tableau, et masquer par identifiant les emportait
    * toutes d'un coup — retirer « moi » de la page Personnes le faisait aussi
-   * disparaître des mots rapides, sans que rien ne l'annonce.
+   * disparaître de l'accueil, sans que rien ne l'annonce.
    */
   const basculerMasque = useCallback(
     (profileId: string, ref: RefSlot) =>

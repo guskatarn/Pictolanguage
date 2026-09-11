@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest'
 import {
   LIBELLES_CLASSES,
   PALETTE_FITZGERALD,
+  PALETTE_NAVIGATION,
   PALETTE_NEUTRE,
   Palette,
   getStyleCase,
+  getStyleNavigation,
 } from './classesGrammaticales'
 import { ClasseGrammaticale } from '../types'
 
@@ -24,6 +26,7 @@ function contraste(a: string, b: string): number {
 const PALETTES: [string, Palette][] = [
   ...Object.entries(PALETTE_FITZGERALD),
   ['neutre', PALETTE_NEUTRE],
+  ['navigation', PALETTE_NAVIGATION],
 ]
 
 describe('mesure de contraste', () => {
@@ -87,5 +90,19 @@ describe('getStyleCase', () => {
   it('retombe sur le neutre pour un mot sans classe grammaticale', () => {
     const style = getStyleCase({ categoryId: 'besoins' }, 'grammatical')
     expect(style.bgColor).toBe(PALETTE_NEUTRE.fond)
+  })
+})
+
+describe('getStyleNavigation', () => {
+  it('ne prête jamais à une case de navigation la couleur d’une classe', () => {
+    // La page Actions est orange : en mode grammatical, sa case se lirait
+    // comme un nom.
+    const fonds = new Set(Object.values(PALETTE_FITZGERALD).map((p) => p.fond))
+    expect(fonds.has(getStyleNavigation('actions', 'grammatical').bgColor)).toBe(false)
+    expect(getStyleNavigation('actions', 'grammatical').bgColor).not.toBe(PALETTE_NEUTRE.fond)
+  })
+
+  it('reprend la couleur de la page visée en mode thématique', () => {
+    expect(getStyleNavigation('aliments', 'thematique').bgColor).toBe('#DCFCE7')
   })
 })

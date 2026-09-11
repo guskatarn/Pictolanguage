@@ -77,6 +77,8 @@ export function isStorageWritable(): boolean {
 }
 
 const IDS_PAGES = new Set(TABLEAU_TLA.pages.map((p) => p.id))
+/** L'accueil n'y figure pas : il reste en tête, hors de l'ordre du parent. */
+const PAGES_REORDONNABLES = new Set(ORDRE_PAGES_PAR_DEFAUT)
 const TAILLE_PAGE_FAVORIS = nombreDeSlots(TABLEAU_TLA.geometrie)
 
 function isQuotaError(err: unknown): boolean {
@@ -106,7 +108,6 @@ function normalizeSettings(raw?: Partial<ProfileSettings>): ProfileSettings {
     modeCouleur: raw?.modeCouleur === 'thematique' ? 'thematique' : 'grammatical',
     formulation: raw?.formulation === 'brute' ? 'brute' : 'naturelle',
     accord: raw?.accord === 'feminin' ? 'feminin' : 'masculin',
-    showCoreBar: raw?.showCoreBar ?? true,
   }
 }
 
@@ -143,7 +144,9 @@ function normalizeMotPerso(raw: unknown): EntreeLexique | null {
  */
 function normalizeOrdrePages(raw: unknown): string[] {
   const demande = Array.isArray(raw) ? raw.filter((id): id is string => typeof id === 'string') : []
-  const retenu = demande.filter((id, i) => IDS_PAGES.has(id) && demande.indexOf(id) === i)
+  const retenu = demande.filter(
+    (id, i) => PAGES_REORDONNABLES.has(id) && demande.indexOf(id) === i,
+  )
   const manquantes = ORDRE_PAGES_PAR_DEFAUT.filter((id) => !retenu.includes(id))
   return [...retenu, ...manquantes]
 }

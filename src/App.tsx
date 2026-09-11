@@ -7,15 +7,14 @@ import ProfileSelector from './components/ProfileSelector'
 import CategoryTabs from './components/CategoryTabs'
 import PictogramCard from './components/PictogramCard'
 import SentenceBar from './components/SentenceBar'
-import CoreVocabularyBar from './components/CoreVocabularyBar'
+import CaseNavigation from './components/CaseNavigation'
 import HistoryPanel from './components/HistoryPanel'
 import SearchPanel from './components/SearchPanel'
 import SettingsPanel from './components/SettingsPanel'
 import StorageAlert from './components/StorageAlert'
 import ParentGate from './components/ParentGate'
-import { DEFAULT_CATEGORIES, FAVORITES_CATEGORY_ID } from './data/defaultCategories'
-import { CORE_VOCABULARY } from './data/coreVocabulary'
-import { GEOMETRIE } from './data/tableauTla'
+import { FAVORITES_CATEGORY_ID } from './data/defaultCategories'
+import { GEOMETRIE, TABLEAU_TLA } from './data/tableauTla'
 
 export type { InstallPromptEvent }
 
@@ -55,7 +54,7 @@ export default function App() {
   } = usePictograms(activeProfile)
   const { speak, isSpeaking } = useSpeech()
 
-  const [activeCategory, setActiveCategory] = useState(DEFAULT_CATEGORIES[0]?.id ?? 'besoins')
+  const [activeCategory, setActiveCategory] = useState(TABLEAU_TLA.pageRacine)
   const [sentence, setSentence] = useState<SentenceItem[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -100,13 +99,13 @@ export default function App() {
   const cases = isFavoritesTab ? casesFavorites() : casesDeLaPage(activeCategory)
   const pageVide = cases.every((c) => c === null)
 
-  const handlePictogramClick = (picto: {
-    key: string
-    word: string
-    arasaacId?: number
-    imageUrl: string
-    isCustom: boolean
-  }) => {
+  /** Onglet ou case de navigation : les deux mènent au même endroit. */
+  const allerALaPage = (pageId: string) => {
+    setActiveCategory(pageId)
+    gridRef.current?.scrollTo({ top: 0 })
+  }
+
+  const handlePictogramClick = (picto: PictogramItem) => {
     const item: SentenceItem = {
       key: `${picto.key}-${Date.now()}`,
       word: picto.word,
@@ -187,6 +186,9 @@ export default function App() {
   const handleSelectProfile = (id: string) => {
     setActiveProfileId(id)
     setSentence([])
+    // Chaque enfant retrouve son tableau par l'accueil, pas sur la page où le
+    // précédent l'avait laissé.
+    setActiveCategory(TABLEAU_TLA.pageRacine)
   }
 
   const handleCreateProfile = (name: string, avatar: string) => {
@@ -285,25 +287,13 @@ export default function App() {
         isSpeaking={isSpeaking}
       />
 
-      {/* Core vocabulary bar (mots fréquents toujours accessibles) */}
-      {activeProfile.settings.showCoreBar !== false && (
-        <CoreVocabularyBar words={CORE_VOCABULARY} onClick={handlePictogramClick} />
-      )}
-
       {/*
         Onglets + grille forment un bloc à part : en portrait ils restent
         empilés, en paysage `.app-body` les met côte à côte et les onglets
         deviennent une colonne à gauche. Voir index.css.
       */}
       <div className="app-body">
-        <CategoryTabs
-          categories={tabs}
-          activeId={activeCategory}
-          onSelect={(id) => {
-            setActiveCategory(id)
-            gridRef.current?.scrollTo({ top: 0 })
-          }}
-        />
+        <CategoryTabs categories={tabs} activeId={activeCategory} onSelect={allerALaPage} />
 
         {/*
           La grille défile sur les deux axes : sa géométrie est déclarée par le
@@ -336,27 +326,42 @@ export default function App() {
               data-taille={activeProfile.settings.tailleCase}
               style={{ '--colonnes': GEOMETRIE.colonnes } as CSSProperties}
             >
-              {cases.map((picto, index) =>
-                picto === null || picto.isHidden ? (
+              {cases.map((contenu, index) => {
+                if (contenu === null || (contenu.type === 'mot' && contenu.picto.isHidden)) {
                   // Case vide, et non case absente : la position de tous les
                   // pictogrammes suivants doit rester celle que l'enfant a
                   // apprise. Invisible et hors du parcours de lecture d'écran.
-                  <div key={picto?.key ?? `vide-${index}`} aria-hidden="true" />
-                ) : (
-                  <PictogramCard
-                    key={picto.key}
-                    picto={picto}
-                    size={activeProfile.settings.tailleCase}
-                    modeCouleur={activeProfile.settings.modeCouleur}
-                    onClick={handlePictogramClick}
-                    onToggleFavorite={handleToggleFavorite}
-                    // Verrou posé : l'étoile disparaît. C'était la réserve
-                    // ouverte depuis le lot favoris — un enfant qui vise son
-                    // mot touchait l'étoile d'à côté et n'entendait rien.
-                    showFavorite={!estVerrouille}
-                  />
-                ),
-              )}
+                  const cle = contenu?.type === 'mot' ? contenu.picto.key : `vide-${index}`
+                  return <div key={cle} aria-hidden="true" />
+                }
+                switch (contenu.type) {
+                  case 'mot':
+                    return (
+                      <PictogramCard
+                        key={contenu.picto.key}
+                        picto={contenu.picto}
+                        size={activeProfile.settings.tailleCase}
+                        modeCouleur={activeProfile.settings.modeCouleur}
+                        onClick={handlePictogramClick}
+                        onToggleFavorite={handleToggleFavorite}
+                        // Verrou posé : l'étoile disparaît. C'était la réserve
+                        // ouverte depuis le lot favoris — un enfant qui vise son
+                        // mot touchait l'étoile d'à côté et n'entendait rien.
+                        showFavorite={!estVerrouille}
+                      />
+                    )
+                  case 'navigation':
+                    return (
+                      <CaseNavigation
+                        key={contenu.key}
+                        navigation={contenu}
+                        size={activeProfile.settings.tailleCase}
+                        modeCouleur={activeProfile.settings.modeCouleur}
+                        onOuvrir={allerALaPage}
+                      />
+                    )
+                }
+              })}
             </div>
           )}
         </div>

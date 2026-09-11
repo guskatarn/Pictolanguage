@@ -49,6 +49,18 @@ export const PALETTE_NEUTRE: Palette = {
   texte: '#1F2937',
 }
 
+/**
+ * Cases qui ouvrent une page. Ce ne sont pas des mots : leur donner la couleur
+ * de leur thème en mode grammatical brouillerait la clé — la page Actions,
+ * orange, se lirait comme un nom. Ardoise, un cran plus soutenu que le neutre
+ * des mots ajoutés par un parent, pour que les deux ne se confondent pas.
+ */
+export const PALETTE_NAVIGATION: Palette = {
+  fond: '#E2E8F0',
+  bordure: '#475569',
+  texte: '#1E293B',
+}
+
 export const LIBELLES_CLASSES: Record<ClasseGrammaticale, string> = {
   pronom: 'Pronoms',
   verbe: 'Verbes',
@@ -78,4 +90,21 @@ export function getStyleCase(
     ? PALETTE_FITZGERALD[picto.classeGrammaticale]
     : PALETTE_NEUTRE
   return { bgColor: palette.fond, borderColor: palette.bordure, textColor: palette.texte }
+}
+
+/**
+ * Couleurs d'une case de navigation : celles de la page visée en mode
+ * thématique, où elles répondent à l'onglet du même thème ; l'ardoise en mode
+ * grammatical, où une couleur ne doit jamais dire autre chose qu'une classe.
+ */
+export function getStyleNavigation(
+  pageCible: string,
+  mode: ProfileSettings['modeCouleur'],
+): { bgColor: string; borderColor: string; textColor: string } {
+  if (mode === 'thematique') return getCategoryStyle(pageCible)
+  return {
+    bgColor: PALETTE_NAVIGATION.fond,
+    borderColor: PALETTE_NAVIGATION.bordure,
+    textColor: PALETTE_NAVIGATION.texte,
+  }
 }

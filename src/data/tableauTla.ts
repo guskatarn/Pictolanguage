@@ -1,5 +1,6 @@
 import { Case, Geometrie, Tableau } from '../types'
-import { construirePage } from '../utils/pages'
+import { casesEnRangees, construirePage } from '../utils/pages'
+import { ACCUEIL_CATEGORY, FAVORITES_CATEGORY_ID } from './defaultCategories'
 
 /**
  * Tableau de langage assisté livré avec l'application.
@@ -34,6 +35,40 @@ function rangee(depart: number, ...lexiqueIds: string[]): Record<number, Case> {
   return Object.fromEntries(lexiqueIds.map((id, decalage) => [depart + decalage, mot(id)]))
 }
 
+/** Case qui ouvre une page. Voir `Case` pour le choix de l'emoji. */
+function vers(pageCible: string, libelle: string, emoji: string): Case {
+  return { type: 'navigation', pageCible, libelle, emoji }
+}
+
+const _ = null
+
+export const PAGE_ACCUEIL = ACCUEIL_CATEGORY.id
+
+/**
+ * Page d'accueil dense : le vocabulaire qui sert dans presque toutes les
+ * phrases, plus une case vers chaque thème.
+ *
+ * Elle absorbe l'ancienne barre de mots rapides, qui défilait en largeur — ce
+ * que le projet avait passé un lot entier à éliminer ailleurs — et dont les
+ * mots n'avaient pas de position fixe dans le tableau.
+ *
+ * Disposition de gauche à droite selon la clé de Fitzgerald : mots sociaux en
+ * tête, puis pronoms, verbes, mots qui décrivent, et les thèmes à droite. La
+ * colonne des pronoms n'a que « moi » : ses trois cases libres attendent
+ * « toi », « il », « elle » quand le lexique les aura.
+ *
+ * **Provisoire, à valider par une orthophoniste**, comme la géométrie : c'est
+ * la page que l'enfant touchera le plus, donc celle qu'on déplacera le moins
+ * volontiers une fois apprise.
+ */
+const ACCUEIL = casesEnRangees(GEOMETRIE, [
+  [mot('oui'), mot('non'), mot('stop'), mot('encore'), mot('fini'), mot('aide')],
+  [mot('moi'), mot('vouloir'), mot('aimer'), mot('content'), vers('besoins', 'Besoins', '🙋'), vers('emotions', 'Émotions', '😊')],
+  [_, mot('aller'), mot('donner'), mot('triste'), vers('aliments', 'Aliments', '🍎'), vers('actions', 'Actions', '🏃')],
+  [_, mot('manger'), mot('jouer'), mot('fatigue'), vers('lieux', 'Lieux', '🗺️'), vers('personnes', 'Personnes', '👪')],
+  [_, mot('boire'), mot('regarder'), _, vers('objets', 'Objets', '🧸'), vers(FAVORITES_CATEGORY_ID, 'Favoris', '⭐')],
+])
+
 /**
  * Les identifiants de page reprennent ceux des anciennes catégories. Ce n'est
  * pas de la nostalgie : cela rend l'ordre des pages du profil directement
@@ -44,10 +79,9 @@ export const TABLEAU_TLA: Tableau = {
   nom: 'Tableau de langage assisté',
   version: 1,
   geometrie: GEOMETRIE,
-  // La page d'accueil dense arrive avec le lot « tableau dense » ; d'ici là,
-  // la racine est la première page thématique.
-  pageRacine: 'besoins',
+  pageRacine: PAGE_ACCUEIL,
   pages: [
+    construirePage({ id: PAGE_ACCUEIL, titre: 'Accueil', geometrie: GEOMETRIE, cases: ACCUEIL }),
     construirePage({
       id: 'besoins', titre: 'Besoins', theme: 'besoins', geometrie: GEOMETRIE,
       cases: rangee(0, 'manger', 'boire', 'toilettes', 'dormir', 'aide'),
@@ -85,4 +119,11 @@ export function trouverPage(id: string): Tableau['pages'][number] | undefined {
   return PAGES_PAR_ID.get(id)
 }
 
-export const ORDRE_PAGES_PAR_DEFAUT = TABLEAU_TLA.pages.map((p) => p.id)
+/**
+ * Pages que le parent peut réordonner : toutes, sauf l'accueil. La racine
+ * reste en tête des onglets quoi qu'il arrive — c'est le point de retour de
+ * l'enfant, et un point de retour qui se déplace n'en est plus un.
+ */
+export const ORDRE_PAGES_PAR_DEFAUT = TABLEAU_TLA.pages
+  .map((p) => p.id)
+  .filter((id) => id !== TABLEAU_TLA.pageRacine)

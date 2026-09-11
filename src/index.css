@@ -67,8 +67,8 @@ button {
 /* ------------------------------------------------------------------------
    Mise en page paysage et grands écrans.
 
-   En portrait tout est empilé : barre supérieure, phrase en cours, mots
-   rapides, onglets de catégories, puis la grille. Cet empilement coûte de
+   En portrait tout est empilé : barre supérieure, phrase en cours, onglets
+   de catégories, puis la grille. Cet empilement coûte de
    la hauteur, et la hauteur est précisément ce qui manque en paysage —
    l'orientation d'usage courante d'une tablette posée sur une table.
 
@@ -139,18 +139,8 @@ button {
     align-items: center;
   }
 
-  .core-bar {
-    padding-top: 0.125rem;
-    padding-bottom: 0.125rem;
-  }
-
   /* Les vignettes rétrécissent, pas les boutons : la cible tactile reste
      celle du bouton entier, qui garde sa hauteur de ligne et son libellé. */
-  .core-bar .core-word-img {
-    width: 2rem;
-    height: 2rem;
-  }
-
   .sentence-bar .sentence-item {
     width: 56px;
   }
@@ -171,6 +161,24 @@ button {
 
 .picto-card:active {
   transform: scale(0.9);
+}
+
+/* Coin replié des cases qui ouvrent une page. Il distingue d'un coup d'œil
+   « cette case dit un mot » de « cette case change de page », sans rien à
+   lire — l'enfant qui ne lit pas n'a que la forme pour le savoir.
+
+   Un triangle en deux couleurs, posé sur le coin supérieur droit (laissé
+   carré par la carte) : la moitié extérieure prend le fond de la grille et
+   découpe le coin, la moitié intérieure prend la couleur de bordure et figure
+   le rabat. `--bordure` est posée en ligne par `CaseNavigation`. */
+.case-navigation::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  border-style: solid;
+  border-width: 0 1.25rem 1.25rem 0;
+  border-color: transparent #f9fafb var(--bordure) transparent;
 }
 
 .sentence-item {

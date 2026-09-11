@@ -86,6 +86,32 @@ export function construirePage({ id, titre, geometrie, cases, theme }: SpecPage)
 }
 
 /**
+ * Écrit une page rangée par rangée, telle qu'elle s'affichera : `null` marque
+ * une case libre. Pour une page dense, c'est la seule forme qui se relit — une
+ * orthophoniste doit y voir la grille, pas une liste d'index à recompter.
+ *
+ * Lève sur une rangée trop longue : elle déborderait sur la suivante sans
+ * autre signe, et tout ce qui suit glisserait d'autant.
+ */
+export function casesEnRangees(
+  geometrie: Geometrie,
+  rangees: (Case | null)[][],
+): Record<number, Case> {
+  const cases: Record<number, Case> = {}
+  rangees.forEach((rangee, ligne) => {
+    if (rangee.length > geometrie.colonnes) {
+      throw new Error(
+        `Rangée ${ligne} : ${rangee.length} cases pour ${geometrie.colonnes} colonnes.`,
+      )
+    }
+    rangee.forEach((contenu, colonne) => {
+      if (contenu) cases[indexDepuis(geometrie, ligne, colonne)] = contenu
+    })
+  })
+  return cases
+}
+
+/**
  * Première case libre d'une page, en tenant compte des mots que le profil y a
  * déjà posés. `null` si la page est pleine.
  *

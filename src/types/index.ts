@@ -33,8 +33,6 @@ export interface ProfileSettings {
    * souvent à deux enfants.
    */
   accord: 'masculin' | 'feminin'
-  /** Barre de vocabulaire "core" toujours visible (mots fréquents, CAA). */
-  showCoreBar: boolean
 }
 
 export interface HistoryEntry {
@@ -82,24 +80,25 @@ export interface SentenceItem {
   customImageUrl?: string
 }
 
-export interface PictogramEntry {
-  id: number
-  word: string
-  categoryId: string
-}
-
 export interface PictogramItem {
   key: string
   word: string
+  /**
+   * Mot du lexique (livré ou ajouté par le parent) que porte la case. Absent
+   * pour un résultat de recherche ARASAAC. Un même mot pouvant occuper
+   * plusieurs cases, c'est lui — et non la clé — qui dit « c'est le même mot ».
+   */
+  lexiqueId?: string
   arasaacId?: number
   imageUrl: string
   isCustom: boolean
   customId?: string
   isFavorite: boolean
   /**
-   * Catégorie de rangement du pictogramme, d'où viennent ses couleurs.
-   * Absente pour un résultat de recherche ARASAAC, qui n'est encore rangé
-   * nulle part. Voir `getCategoryStyle`.
+   * Thème du mot, d'où viennent ses couleurs en mode thématique : celui du
+   * lexique, et à défaut celui de la page où le parent l'a posé. Absent pour
+   * un résultat de recherche ARASAAC, et pour un mot sans thème (« oui »,
+   * « encore »…), qui se colore alors en neutre. Voir `getCategoryStyle`.
    */
   categoryId?: string
   /** Classe grammaticale du mot, source des couleurs en mode Fitzgerald. */
@@ -303,8 +302,23 @@ export type Commande =
  */
 export type Case =
   | { type: 'vocabulaire'; lexiqueId: string }
-  | { type: 'navigation'; pageCible: string; libelle: string; arasaacId?: number }
+  /**
+   * Ouvre une autre page. Illustrée par un emoji et non par un pictogramme
+   * ARASAAC, à dessein : une case qui montrerait l'image de « pomme » mais
+   * ouvrirait la page Aliments au lieu de dire « pomme » tromperait l'enfant.
+   * Le coin replié de la carte achève de la distinguer d'un mot.
+   */
+  | { type: 'navigation'; pageCible: string; libelle: string; emoji: string }
   | { type: 'commande'; commande: Commande; libelle: string }
+
+/**
+ * Case telle que la grille la rend. Même principe que `Case` : une union que
+ * le rendu parcourt par `switch`, pour qu'un nouveau type de case ne puisse
+ * pas tomber en silence dans la branche d'un autre.
+ */
+export type CaseGrille =
+  | { type: 'mot'; picto: PictogramItem }
+  | (Extract<Case, { type: 'navigation' }> & { key: string })
 
 export interface Page {
   id: string

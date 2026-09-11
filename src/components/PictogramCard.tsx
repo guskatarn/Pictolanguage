@@ -1,6 +1,7 @@
 import { PictogramItem, ProfileSettings, TailleCase } from '../types'
 import { usePictogramImage } from '../hooks/usePictogramImage'
 import { getStyleCase } from '../data/classesGrammaticales'
+import { STYLE_TAILLE } from './tailleCase'
 
 interface Props {
   picto: PictogramItem
@@ -13,18 +14,6 @@ interface Props {
   showFavorite?: boolean
 }
 
-/**
- * Taille du libellé et des marges, la vignette remplissant la case qui lui
- * échoit. La géométrie de la grille appartient désormais au tableau : c'est la
- * **case** qui grandit avec ce réglage, et la grille défile quand elle ne tient
- * plus à l'écran, plutôt que de se reformer sur moins de colonnes.
- */
-const sizeMap: Record<TailleCase, { text: string; padding: string }> = {
-  S: { text: 'text-xs', padding: 'p-1.5' },
-  M: { text: 'text-sm', padding: 'p-2' },
-  L: { text: 'text-base', padding: 'p-2.5' },
-}
-
 export default function PictogramCard({
   picto,
   size,
@@ -34,7 +23,7 @@ export default function PictogramCard({
   showFavorite = true,
 }: Props) {
   const { src, failed, onError } = usePictogramImage(picto.imageUrl, picto.arasaacId)
-  const s = sizeMap[size]
+  const s = STYLE_TAILLE[size]
   // Les couleurs viennent d'une propriété du pictogramme — sa classe
   // grammaticale ou son thème selon le mode —, jamais de la page affichée : un
   // mot garde la même couleur partout, y compris dans les favoris.

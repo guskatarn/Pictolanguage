@@ -1,5 +1,5 @@
 import { SentenceItem } from '../types'
-import { getArasaacImageUrl } from '../data/defaultPictograms'
+import { getArasaacImageUrl } from '../utils/arasaac'
 import { usePictogramImage } from '../hooks/usePictogramImage'
 
 interface Props {

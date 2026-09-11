@@ -1,7 +1,21 @@
 import { Category } from '../types'
 
 /**
- * Onglet « Favoris », toujours en première position et jamais réordonnable.
+ * Onglet de la page d'accueil, toujours en tête et jamais réordonnable : c'est
+ * le point de retour de l'enfant. Contrairement aux favoris, c'est une vraie
+ * page — un parent peut y poser un mot ou y masquer une case.
+ * `tableauTla.ts` en reprend l'identifiant pour nommer la page.
+ */
+export const ACCUEIL_CATEGORY: Category = {
+  id: 'accueil',
+  name: '🏠 Accueil',
+  color: '#312E81',
+  bgColor: '#E0E7FF',
+  tabColor: '#4F46E5',
+}
+
+/**
+ * Onglet « Favoris », toujours juste après l'accueil et jamais réordonnable.
  *
  * Il est affiché même vide : le faire apparaître au premier favori décalerait
  * toutes les autres catégories d'un cran, ce qui casserait les repères moteurs

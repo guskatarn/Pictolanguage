@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getArasaacRemoteImageUrl } from '../data/defaultPictograms'
+import { getArasaacRemoteImageUrl } from '../utils/arasaac'
 
 /**
  * Fournit la source d'image d'un pictogramme avec repli en cascade :

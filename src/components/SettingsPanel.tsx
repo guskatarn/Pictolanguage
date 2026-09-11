@@ -261,33 +261,6 @@ export default function SettingsPanel({
                   ))}
                 </div>
               </div>
-
-              <div className="border-t border-gray-200 pt-4">
-                <button
-                  onClick={() => onUpdateSettings({ showCoreBar: !profile.settings.showCoreBar })}
-                  className="w-full flex items-center justify-between bg-gray-50 rounded-xl p-3 border border-gray-100"
-                >
-                  <span className="text-left">
-                    <span className="text-sm font-bold text-gray-700 block">
-                      Barre de mots rapides
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      Mots fréquents (moi, veux, stop, oui, non...) toujours visibles
-                    </span>
-                  </span>
-                  <span
-                    className={`shrink-0 w-11 h-6 rounded-full relative transition-colors ${
-                      profile.settings.showCoreBar ? 'bg-violet-600' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                        profile.settings.showCoreBar ? 'translate-x-[22px]' : 'translate-x-0.5'
-                      }`}
-                    />
-                  </span>
-                </button>
-              </div>
             </div>
           )}
 
