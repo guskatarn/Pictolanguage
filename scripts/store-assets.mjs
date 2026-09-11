@@ -192,10 +192,13 @@ function genererIcones() {
 
 const SCENES = {
   accueil: [],
+  // Les trois mots sont sur la page d'accueil, où l'application s'ouvre. Les
+  // cases de navigation portent aussi `.picto-card`, mais un libellé
+  // « Ouvrir la page … » : le sélecteur ne peut pas les confondre avec un mot.
   phrase: [
-    '.core-bar button[aria-label="moi"]',
-    '.core-bar button[aria-label="vouloir"]',
-    '.picto-card[aria-label="manger"]',
+    '.picto-grid .picto-card[aria-label="moi"]',
+    '.picto-grid .picto-card[aria-label="vouloir"]',
+    '.picto-grid .picto-card[aria-label="manger"]',
   ],
   favoris: ['.category-tabs button[aria-label="⭐ Favoris"]'],
   reglages: ['button[aria-label="Paramètres"]'],
@@ -219,22 +222,35 @@ const FORMATS = [
   { nom: 'tablette-10', largeur: 1280, hauteur: 800, echelle: 2 },
 ]
 
+/**
+ * Profil de démonstration, **au format persisté courant** (`schemaVersion`
+ * de src/utils/storage.ts). Un format périmé n'échoue pas bruyamment :
+ * l'application l'écarte comme un contenu corrompu, et chaque capture
+ * montrerait le sélecteur de profils. À reprendre à chaque changement de
+ * schéma — c'est ce qui est arrivé au passage au modèle de pages.
+ *
+ * Les champs omis (ordre des pages, réglages) sont complétés à la lecture.
+ */
 const PROFIL_DEMO = {
+  schemaVersion: 2,
   activeProfileId: 'demo',
+  parentPin: null,
   profiles: [
     {
       id: 'demo',
       name: 'Lina',
       avatar: '🦊',
-      // Quelques favoris, sans quoi l'onglet « Favoris » se photographierait vide.
-      favorites: [6456, 6061, 2462, 23392, 6964],
-      favoritesCustom: [],
-      hidden: [],
-      hiddenCustom: [],
-      categoryOrder: [],
-      customPictograms: [],
+      tableauId: 'tla-fr',
+      // Quelques favoris, sans quoi l'onglet « Favoris » se photographierait
+      // vide. Adresses de cases (« page#index ») : manger, boire, pomme,
+      // jouer, maison — voir src/data/tableauTla.ts.
+      pageFavoris: ['besoins#0', 'besoins#1', 'aliments#3', 'actions#2', 'lieux#1'],
+      slotsMasques: [],
+      ordrePages: [],
+      lexiquePerso: [],
+      placements: {},
       history: [],
-      settings: { pictogramSize: 'M', voiceRate: 1, voiceVolume: 1, showCoreBar: true },
+      settings: { tailleCase: 'M', modeCouleur: 'grammatical', formulation: 'naturelle' },
     },
   ],
 }

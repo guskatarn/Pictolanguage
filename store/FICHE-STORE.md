@@ -36,12 +36,24 @@ l'école et en orthophonie.
 CONÇUE POUR DES ENFANTS QUI ONT BESOIN DE REPÈRES STABLES
 
 • Grandes images, grandes zones à toucher, contrastes marqués
-• Les catégories ne changent jamais de place : l'enfant retrouve un mot au
-  même endroit, ce qui l'aide à aller de plus en plus vite
-• Une barre de mots fréquents (moi, vouloir, aide, encore, stop, oui, non...)
-  reste accessible quelle que soit la catégorie affichée
+• Chaque mot garde toujours sa place dans la grille, même quand d'autres sont
+  masqués : l'enfant le retrouve au même endroit, ce qui l'aide à aller de
+  plus en plus vite
+• Une page d'accueil réunit les mots qui servent le plus souvent (moi,
+  vouloir, aide, encore, stop, oui, non...) et ouvre chaque thème d'une seule
+  touche
+• Des couleurs selon la nature des mots, code répandu en communication
+  alternative, ou selon les thèmes
 • Trois tailles d'affichage, et la possibilité de masquer les pictogrammes
   inutiles pour alléger l'écran
+
+DES PHRASES QUI SONNENT JUSTE
+
+Pour le vocabulaire fourni, l'application prononce une phrase construite :
+« moi · vouloir · manger » devient « je veux manger », « moi · content »
+devient « je suis content » ou « je suis contente ». L'adulte peut préférer
+que chaque mot soit dit tel qu'il a été touché. Les mots que vous ajoutez sont
+prononcés tels quels.
 
 FONCTIONNE SANS CONNEXION
 
@@ -53,6 +65,13 @@ le réseau manque.
 PERSONNALISABLE PAR L'ADULTE
 
 • Jusqu'à 6 profils, un par enfant, chacun avec ses favoris et ses réglages
+• Un code parent protège les réglages : l'enfant ne peut pas les modifier
+  par mégarde
+• Mode modélisation : l'adulte montre comment dire une phrase en touchant
+  les images ; chaque mot est prononcé et s'illumine, sans s'ajouter à la
+  phrase de l'enfant
+• Recherche d'un mot, pour le retrouver vite sans savoir sur quelle page il se
+  trouve
 • Ajout de vos propres pictogrammes, depuis une photo ou depuis la banque
   ARASAAC
 • Réglage de la vitesse et du volume de la voix
@@ -132,20 +151,27 @@ application qui n'existe plus.
 
 Quatre scènes par format, dans l'ordre conseillé de présentation :
 
-1. **phrase** — une phrase composée, « Parler » à portée : c'est l'usage même
-   de l'application, à mettre en premier.
-2. **accueil** — la grille par catégories.
-3. **favoris** — l'onglet Favoris et, sur tablette, la colonne de catégories
-   du mode paysage.
+1. **phrase** — « moi · vouloir · manger » composé sur l'accueil, « Parler »
+   à portée : c'est l'usage même de l'application, à mettre en premier.
+2. **accueil** — la page d'accueil : les mots les plus fréquents, et une case
+   vers chaque thème (coin replié).
+3. **favoris** — l'onglet Favoris et, sur tablette, la colonne d'onglets du
+   mode paysage.
 4. **reglages** — les réglages parents, où figure aussi le lien vers la
    politique de confidentialité.
+
+Le profil de démonstration est écrit dans `scripts/store-assets.mjs`, au
+format enregistré par l'application. **Il est à reprendre à chaque changement
+de ce format** : un format périmé est écarté sans bruit, et toutes les
+captures montreraient alors le sélecteur de profils.
 
 Deux réserves à connaître :
 
 - Les captures « téléphone » sont rendues à **500 px CSS de large**, plancher
-  imposé par Chrome en mode headless. Un téléphone courant fait plutôt 360 à
-  430 px et affichera donc une colonne de moins. À contrôler sur un appareil
-  réel avant publication.
+  imposé par Chrome en mode headless. La grille ayant six colonnes fixes, la
+  cinquième y apparaît coupée — et la quatrième le sera sur un téléphone
+  courant (360 à 430 px), où la grille défile en largeur. Problème connu, à
+  régler avant de publier ces captures.
 - La bannière « Installer » est retirée pendant la capture : elle vient de
   l'événement `beforeinstallprompt` du navigateur et ne peut pas apparaître
   dans l'application installée depuis Play.
@@ -157,7 +183,10 @@ Deux réserves à connaître :
 - Compte développeur Google Play créé et identité vérifiée. L'adresse exigée à
   cette occasion devra concorder avec la politique de confidentialité, qui
   n'en mentionne aujourd'hui aucune (`docs/PLAY-CONFORMITE.md` §4).
-- Empaquetage Android (Capacitor) : il n'existe à ce jour aucun binaire à
-  téléverser.
+- Binaire Android à reconstruire : le bundle signé du 9 septembre 2026
+  précède le tableau de langage assisté. Le reconstruire et rejouer les
+  vérifications sur tablette (`docs/EMPAQUETAGE-ANDROID.md` §7).
+- Affichage sur téléphone : la grille de six colonnes ne tient pas en
+  largeur, sans indice de défilement (voir la réserve du §3).
 - Questionnaire de classification du contenu, à remplir dans la console.
 - Test fermé avant diffusion publique.
