@@ -29,11 +29,15 @@ const UNAVAILABLE_MESSAGE =
   'mais les modifications seront perdues à la fermeture.'
 
 /**
- * `accord` n'est pas encore demandé à la création : il ne produit d'effet
- * qu'une fois la formulation des phrases en place. Poser la question avant
- * qu'elle ne change quoi que ce soit ne ferait qu'ajouter une étape opaque.
+ * `accord` est demandé à la création : dès la première phrase, un enfant doit
+ * s'entendre dire « je suis contente » s'il parle au féminin, sans qu'un
+ * parent ait à le découvrir en fouillant les réglages.
  */
-function createDefaultProfile(name: string, avatar: string): UserProfile {
+function createDefaultProfile(
+  name: string,
+  avatar: string,
+  accord: ProfileSettings['accord'] = 'masculin',
+): UserProfile {
   return {
     id: crypto.randomUUID(),
     name,
@@ -51,7 +55,7 @@ function createDefaultProfile(name: string, avatar: string): UserProfile {
       voiceVolume: 1,
       modeCouleur: 'grammatical',
       formulation: 'naturelle',
-      accord: 'masculin',
+      accord,
     },
   }
 }
@@ -112,9 +116,9 @@ export function useProfiles() {
   )
 
   const createProfile = useCallback(
-    (name: string, avatar: string): UserProfile | null => {
+    (name: string, avatar: string, accord?: ProfileSettings['accord']): UserProfile | null => {
       if (data.profiles.length >= MAX_PROFILES) return null
-      const profile = createDefaultProfile(name, avatar)
+      const profile = createDefaultProfile(name, avatar, accord)
       // Activate the new profile in the same update to avoid stale-closure race.
       // `...data` d'abord : sans lui, créer un profil effacerait tout champ
       // hors profils — le code parent, aujourd'hui, et le suivant demain.
@@ -159,7 +163,7 @@ export function useProfiles() {
    * rechercher.
    */
   const addToHistory = useCallback(
-    (profileId: string, words: string[]) => {
+    (profileId: string, words: string[], texte?: string) => {
       if (!words.length) return
       const profile = data.profiles.find((p) => p.id === profileId)
       const last = profile?.history[0]
@@ -169,6 +173,7 @@ export function useProfiles() {
       const entry: HistoryEntry = {
         id: crypto.randomUUID(),
         words,
+        ...(texte ? { texte } : {}),
         timestamp: Date.now(),
       }
       const next: StoredData = {

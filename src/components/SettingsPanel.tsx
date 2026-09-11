@@ -9,6 +9,7 @@ import { DEFAULT_CATEGORIES } from '../data/defaultCategories'
 import BackupTab from './BackupTab'
 import CategoryManager from './CategoryManager'
 import ParentGate from './ParentGate'
+import { CHOIX_ACCORD, CHOIX_FORMULATION } from './reglagesPhrase'
 
 const PRIVACY_POLICY_URL = 'https://guskatarn.github.io/Pictolanguage/'
 
@@ -301,6 +302,53 @@ export default function SettingsPanel({
                 <div className="flex justify-between text-xs text-gray-400 mt-0.5">
                   <span>🔇</span>
                   <span>🔊</span>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-sm font-bold text-gray-700 mb-1">Phrase prononcée</p>
+                <p className="mb-2 text-xs text-gray-500">
+                  Certaines orthophonistes préfèrent le mot à mot : l'écart entre ce que
+                  l'enfant touche et ce qu'il entend peut le dérouter. À choisir avec elle.
+                </p>
+                <div className="flex gap-2">
+                  {CHOIX_FORMULATION.map(({ id, libelle, exemple }) => (
+                    <button
+                      key={id}
+                      onClick={() => onUpdateSettings({ formulation: id })}
+                      aria-pressed={profile.settings.formulation === id}
+                      className={`flex-1 rounded-xl border-2 p-2 text-left transition-all ${
+                        profile.settings.formulation === id
+                          ? 'border-violet-600 bg-violet-50'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <span className="block text-sm font-bold text-gray-700">{libelle}</span>
+                      <span className="block text-xs text-gray-500">{exemple}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sans effet en mot à mot, mais laissé visible : le parent qui
+                  repasse en phrase construite retrouve le réglage où il l'a laissé. */}
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-sm font-bold text-gray-700 mb-2">L'application dit</p>
+                <div className="flex gap-2">
+                  {CHOIX_ACCORD.map(({ id, phrase }) => (
+                    <button
+                      key={id}
+                      onClick={() => onUpdateSettings({ accord: id })}
+                      aria-pressed={profile.settings.accord === id}
+                      className={`min-h-[44px] flex-1 rounded-xl border-2 px-2 py-2 text-sm font-bold transition-all ${
+                        profile.settings.accord === id
+                          ? 'border-violet-600 bg-violet-50 text-violet-800'
+                          : 'border-gray-200 bg-white text-gray-600'
+                      }`}
+                    >
+                      {phrase}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

@@ -38,6 +38,11 @@ export interface ProfileSettings {
 export interface HistoryEntry {
   id: string
   words: string[]
+  /**
+   * Phrase telle qu'elle a été prononcée (« je veux manger »). Absente pour
+   * une phrase dite telle que composée : on la rejoue alors mot à mot.
+   */
+  texte?: string
   timestamp: number
 }
 
@@ -76,6 +81,8 @@ export interface UserProfile {
 export interface SentenceItem {
   key: string
   word: string
+  /** Mot du lexique touché : c'est par lui que la formulation trouve sa morphologie. */
+  lexiqueId?: string
   arasaacId?: number
   customImageUrl?: string
 }
@@ -214,6 +221,11 @@ export interface MorphoVerbe {
   semiAuxiliaire?: boolean
   /** Régime du complément de lieu : aller + parc → « au parc ». */
   regime?: 'a' | 'de'
+  /**
+   * Verbe d'appréciation : son complément prend l'article défini, quel que
+   * soit le nom — « j'aime l'eau », jamais « j'aime de l'eau ».
+   */
+  complementDefini?: boolean
 }
 
 export interface MorphoNom {

@@ -2,7 +2,7 @@ import { HistoryEntry } from '../types'
 
 interface Props {
   history: HistoryEntry[]
-  onReplay: (words: string[]) => void
+  onReplay: (entree: HistoryEntry) => void
   onClose: () => void
 }
 
@@ -58,9 +58,16 @@ export default function HistoryPanel({ history, onReplay, onClose }: Props) {
                     <p className="text-sm font-bold text-gray-800 leading-snug">
                       {entry.words.join(' · ')}
                     </p>
+                    {/* Ce que l'enfant a touché, puis ce qu'il a fait entendre :
+                        l'orthophoniste a besoin des deux pour suivre ses progrès. */}
+                    {entry.texte && (
+                      <p className="mt-0.5 text-sm italic leading-snug text-violet-700">
+                        « {entry.texte} »
+                      </p>
+                    )}
                   </div>
                   <button
-                    onClick={() => onReplay(entry.words)}
+                    onClick={() => onReplay(entry)}
                     className="shrink-0 bg-violet-500 text-white rounded-lg px-3 py-1.5 text-sm font-bold active:scale-95 flex items-center gap-1"
                     aria-label="Rejouer"
                   >

@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { UserProfile } from '../types'
+import { ProfileSettings, UserProfile } from '../types'
 import ProfileCard from './ProfileCard'
+import { CHOIX_ACCORD } from './reglagesPhrase'
 
 const AVATARS = ['🐻', '🐼', '🦊', '🐸', '🦄', '🐬', '🌟', '🌈', '🎈', '🚀', '🍓', '🌺']
 
 interface Props {
   profiles: UserProfile[]
   onSelect: (id: string) => void
-  onCreate: (name: string, avatar: string) => void
+  onCreate: (name: string, avatar: string, accord: ProfileSettings['accord']) => void
   onEdit: (profile: UserProfile) => void
   onDelete: (id: string) => void
 }
@@ -22,10 +23,12 @@ export default function ProfileSelector({ profiles, onSelect, onCreate, onEdit, 
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState(AVATARS[0])
+  const [accord, setAccord] = useState<ProfileSettings['accord']>('masculin')
 
   const openCreate = () => {
     setName('')
     setAvatar(AVATARS[0])
+    setAccord('masculin')
     setModal({ type: 'create' })
   }
 
@@ -39,7 +42,7 @@ export default function ProfileSelector({ profiles, onSelect, onCreate, onEdit, 
     const trimmed = name.trim()
     if (!trimmed) return
     if (modal.type === 'create') {
-      onCreate(trimmed, avatar)
+      onCreate(trimmed, avatar, accord)
       setModal({ type: 'none' })
     } else if (modal.type === 'edit') {
       onEdit({ ...modal.profile, name: trimmed, avatar })
@@ -130,6 +133,30 @@ export default function ProfileSelector({ profiles, onSelect, onCreate, onEdit, 
                 ))}
               </div>
             </div>
+
+            {/* À la création seulement : ensuite, le réglage vit dans les
+                paramètres, derrière le code parent. */}
+            {modal.type === 'create' && (
+              <div className="mb-6">
+                <p className="text-sm font-bold text-gray-600 mb-2">L'application dira pour cet enfant</p>
+                <div className="flex gap-2">
+                  {CHOIX_ACCORD.map((choix) => (
+                    <button
+                      key={choix.id}
+                      onClick={() => setAccord(choix.id)}
+                      aria-pressed={accord === choix.id}
+                      className={`min-h-[44px] flex-1 rounded-xl border-2 px-2 py-2 text-sm font-bold transition-all ${
+                        accord === choix.id
+                          ? 'border-violet-500 bg-violet-100 text-violet-800'
+                          : 'border-gray-200 bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      {choix.phrase}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button

@@ -28,6 +28,19 @@ describe('useProfiles — création et persistance', () => {
     expect(JSON.parse(localStorage.getItem('pictoapp-data')!).profiles).toHaveLength(1)
   })
 
+  it('retient l’accord choisi à la création, masculin à défaut', () => {
+    const { result } = renderHook(() => useProfiles())
+    act(() => {
+      result.current.createProfile('Lina', '🦊', 'feminin')
+    })
+    expect(result.current.activeProfile?.settings.accord).toBe('feminin')
+
+    act(() => {
+      result.current.createProfile('Tom', '🐻')
+    })
+    expect(result.current.activeProfile?.settings.accord).toBe('masculin')
+  })
+
   it('refuse de dépasser le nombre maximum de profils', () => {
     const { result } = renderHook(() => useProfiles())
     for (let i = 0; i < MAX_PROFILES + 2; i++) {

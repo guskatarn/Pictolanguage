@@ -95,7 +95,7 @@ export const LEXIQUE: EntreeLexique[] = [
   { id: 'ecouter', mot: 'écouter', arasaacId: 6572, classeGrammaticale: 'verbe', theme: 'actions',
     morpho: verbe('écouter', ['écoute', 'écoutes', 'écoute', 'écoutons', 'écoutez', 'écoutent']) },
   { id: 'aimer', mot: 'aimer', arasaacId: 11538, classeGrammaticale: 'verbe',
-    morpho: verbe('aimer', ['aime', 'aimes', 'aime', 'aimons', 'aimez', 'aiment']) },
+    morpho: verbe('aimer', ['aime', 'aimes', 'aime', 'aimons', 'aimez', 'aiment'], { complementDefini: true }) },
   { id: 'donner', mot: 'donner', arasaacId: 28431, classeGrammaticale: 'verbe',
     morpho: verbe('donner', ['donne', 'donnes', 'donne', 'donnons', 'donnez', 'donnent']) },
 

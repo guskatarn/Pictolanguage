@@ -59,6 +59,49 @@ describe('App — la phrase composée', () => {
   })
 })
 
+describe('App — formulation', () => {
+  function monterAvec(settings: Partial<ReturnType<typeof makeProfile>['settings']>) {
+    const base = makeProfile()
+    const profile = makeProfile({ settings: { ...base.settings, ...settings } })
+    localStorage.setItem(
+      'pictoapp-data',
+      JSON.stringify({ schemaVersion: 2, profiles: [profile], activeProfileId: profile.id, parentPin: null }),
+    )
+    render(<App />)
+    return userEvent.setup()
+  }
+
+  async function composer(user: ReturnType<typeof userEvent.setup>, ...mots: string[]) {
+    for (const mot of mots) await user.click(screen.getByRole('button', { name: mot }))
+    await user.click(screen.getByRole('button', { name: 'Parler' }))
+  }
+
+  it('prononce une phrase construite, accordée au profil', async () => {
+    const user = monterAvec({ formulation: 'naturelle', accord: 'feminin' })
+    await composer(user, 'moi', 'content')
+    expect(parle).toHaveBeenCalledWith('je suis contente', expect.anything())
+  })
+
+  it('prononce mot à mot quand le parent l’a choisi', async () => {
+    const user = monterAvec({ formulation: 'brute' })
+    await composer(user, 'moi', 'vouloir', 'manger')
+    expect(parle).toHaveBeenCalledWith('moi, vouloir, manger', expect.anything())
+  })
+
+  it('garde dans l’historique les mots touchés et la phrase dite, et la rejoue telle quelle', async () => {
+    const user = monterAvec({ formulation: 'naturelle' })
+    await composer(user, 'moi', 'vouloir', 'manger')
+
+    await user.click(screen.getByRole('button', { name: 'Historique' }))
+    expect(screen.getByText('moi · vouloir · manger')).toBeInTheDocument()
+    expect(screen.getByText('« je veux manger »')).toBeInTheDocument()
+
+    parle.mockClear()
+    await user.click(screen.getByRole('button', { name: 'Rejouer' }))
+    expect(parle).toHaveBeenCalledWith('je veux manger', expect.anything())
+  })
+})
+
 describe('App — couleur des pictogrammes', () => {
   /**
    * La couleur venait autrefois de l'onglet affiché : l'onglet Favoris

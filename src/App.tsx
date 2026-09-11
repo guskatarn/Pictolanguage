@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef, CSSProperties } from 'react'
-import { SentenceItem, InstallPromptEvent, UserProfile, PictogramItem } from './types'
+import {
+  SentenceItem,
+  InstallPromptEvent,
+  UserProfile,
+  PictogramItem,
+  HistoryEntry,
+  ProfileSettings,
+} from './types'
+import { formuler } from './utils/formulation'
 import { useProfiles } from './hooks/useProfiles'
 import { usePictograms } from './hooks/usePictograms'
 import { useSpeech } from './hooks/useSpeech'
@@ -133,6 +141,7 @@ export default function App() {
     const item: SentenceItem = {
       key: `${picto.key}-${Date.now()}`,
       word: picto.word,
+      lexiqueId: picto.lexiqueId,
       arasaacId: picto.arasaacId,
       customImageUrl: picto.isCustom ? picto.imageUrl : undefined,
     }
@@ -195,12 +204,16 @@ export default function App() {
 
   const handleSpeak = () => {
     if (!sentence.length || !activeProfile) return
-    const text = sentence.map((i) => i.word).join(', ')
-    speak(text, {
-      rate: activeProfile.settings.voiceRate,
-      volume: activeProfile.settings.voiceVolume,
-    })
-    addToHistory(activeProfile.id, sentence.map((i) => i.word))
+    const { settings } = activeProfile
+    const mots = sentence.map((i) => i.word)
+    // « naturelle » : « je veux manger ». « brute » : exactement ce que
+    // l'enfant a touché, les virgules marquant une pause entre les mots.
+    const texte =
+      settings.formulation === 'naturelle'
+        ? formuler(sentence, { accord: settings.accord, lexiquePerso: activeProfile.lexiquePerso })
+        : undefined
+    speak(texte ?? mots.join(', '), { rate: settings.voiceRate, volume: settings.voiceVolume })
+    addToHistory(activeProfile.id, mots, texte)
     // La phrase reste affichée après avoir été dite. On redemande sans cesse à
     // un enfant de répéter — l'adulte n'a pas entendu, ou quelqu'un arrive —
     // et l'effacer l'obligeait à tout reconstruire pictogramme par
@@ -208,9 +221,11 @@ export default function App() {
     // changement de profil.
   }
 
-  const handleReplayHistory = (words: string[]) => {
+  const handleReplayHistory = (entree: HistoryEntry) => {
     if (!activeProfile) return
-    speak(words.join(', '), {
+    // Rejouée telle qu'elle a été dite, même si le réglage a changé depuis :
+    // c'est cette phrase-là que l'enfant a fait entendre.
+    speak(entree.texte ?? entree.words.join(', '), {
       rate: activeProfile.settings.voiceRate,
       volume: activeProfile.settings.voiceVolume,
     })
@@ -233,8 +248,12 @@ export default function App() {
     setActiveCategory(TABLEAU_TLA.pageRacine)
   }
 
-  const handleCreateProfile = (name: string, avatar: string) => {
-    createProfile(name, avatar)
+  const handleCreateProfile = (
+    name: string,
+    avatar: string,
+    accord: ProfileSettings['accord'],
+  ) => {
+    createProfile(name, avatar, accord)
   }
 
   const handleEditProfile = (profile: UserProfile) => {
